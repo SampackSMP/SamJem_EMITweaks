@@ -5,8 +5,10 @@ same result the original mod would have produced. It only removes redundant work
 the way. Every fix is a mixin into one specific mod. If that mod isn't installed, its mixin is
 skipped.
 
-This mod merges and replaces **Sampack_CreativeTabFix** (`sampack_tabfix`) and **EMI Reclocked**
-(`emireclocked`). Remove both of those jars when you install this one.
+This mod merges and replaces **Sampack_CreativeTabFix** (`sampack_tabfix`), **EMI Reclocked**
+(`emireclocked`) and **SamJem_InventoryItemGroups** (`inventory_item_groups`). Remove those jars when
+you install this one. The mod declares `inventory_item_groups` incompatible, so a leftover copy is
+reported at startup instead of applying its mixins twice.
 
 It is meant to run alongside [EmiAccelerator](https://modrinth.com/mod/emiaccelerator), not to
 replace it. EmiAccelerator disk-caches EMI's item list and defers `EmiSearch.bake()`, and this mod
@@ -65,6 +67,24 @@ The log message and the `EmiStack.EMPTY` fallback don't change.
 - **BCLib**: anvil recipes stream the hammer tag instead of every item.
 
 The javadoc on each mixin covers the details.
+
+## Inventory item groups (`itemgroups`, `mixin/itemgroups`)
+
+Collapsible item groups in the creative inventory, in the style of Bedrock Edition. Click the plus
+icon on a group to expand it and the minus icon to collapse it. This is SamPack's fork of
+[Inventory Item Groups](https://modrinth.com/mod/inventory-item-groups) by Bizarre Cube, cut down to
+NeoForge 1.21.1. It keeps the fork's performance work: per-tab caching of group matching, and index
+lookup tables instead of per-slot linear scans. The code is MIT-licensed. Its notice is in
+`LICENSE-InventoryItemGroups` and ships inside the jar.
+
+The feature is client-only. Its sprites, translations and config files keep the original
+`inventory_item_groups` namespace, so these carry over unchanged:
+- existing `config/inventory_item_groups.json` and `config/inventory_item_groups_scl` files
+- resource-pack group names (`group_name.inventory_item_groups.<name>`)
+
+The groups use their built-in defaults unless [Simple Config Lib](https://modrinth.com/mod/simple-config-lib)
+or [Cloth Config](https://modrinth.com/mod/cloth-config) is installed. Either one makes the groups
+editable from this mod's config button in the mod list.
 
 ## Investigated, not shipped
 

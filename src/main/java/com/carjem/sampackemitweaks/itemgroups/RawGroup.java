@@ -1,0 +1,10 @@
+package com.carjem.sampackemitweaks.itemgroups;
+
+import net.minecraft.world.item.ItemStack;
+
+import java.util.ArrayList;
+
+public class RawGroup {
+    public String name;
+    public ArrayList<ItemStack> items = new ArrayList<>();
+}

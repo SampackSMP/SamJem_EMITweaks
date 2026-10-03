@@ -1,0 +1,25 @@
+package com.carjem.sampackemitweaks.itemgroups.config;
+
+import io.github.bizcub.simpleConfigLib.autoconfig.annotation.ListConfig;
+import io.github.bizcub.simpleConfigLib.autoconfig.annotation.Tooltip;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ItemGroup {
+    public String groupName = "";
+
+    public String tabId = "";
+
+    @Tooltip
+    @ListConfig(addToFront = true)
+    public List<String> equivalentItems = new ArrayList<>();
+
+    @Tooltip
+    @ListConfig(addToFront = true)
+    public List<String> containedItems = new ArrayList<>();
+
+    @Tooltip
+    @ListConfig(addToFront = true)
+    public List<String> nonContainedItems = new ArrayList<>();
+}

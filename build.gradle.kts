@@ -13,6 +13,8 @@ val neoforge_version_range: String by project
 val loader_version_range: String by project
 val emi_version: String by project
 val mixinextras_version: String by project
+val simple_config_lib_version: String by project
+val cloth_config_version: String by project
 
 version = mod_version
 group = mod_group_id
@@ -36,6 +38,12 @@ repositories {
         }
         filter {
             includeGroup("maven.modrinth")
+        }
+    }
+    maven("https://maven.shedaniel.me") {
+        name = "Shedaniel"
+        content {
+            includeGroup("me.shedaniel.cloth")
         }
     }
 }
@@ -73,6 +81,18 @@ dependencies {
     // (same reason REMI's own build.gradle only needs these two configurations, no runtime jar).
     compileOnly("io.github.llamalad7:mixinextras-common:$mixinextras_version")
     annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinextras_version")
+
+    // Config screens for the inventory item groups. Both are optional at runtime: ConfigHelper
+    // only touches whichever one is installed, and falls back to the built-in defaults.
+    compileOnly("maven.modrinth:simple-config-lib:$simple_config_lib_version")
+    compileOnly("me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version") {
+        isTransitive = false
+    }
+}
+
+tasks.jar {
+    // The inventory item groups code is MIT-licensed and must ship with its notice.
+    from("LICENSE-InventoryItemGroups")
 }
 
 tasks.withType<ProcessResources> {

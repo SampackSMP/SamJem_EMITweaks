@@ -30,6 +30,10 @@ SamPack EMI reload and load-time fixes:
   during EMI's reload.
 - BCLib anvil recipes list hammers from the hammer tag instead of scanning
   every item.
+
+Also adds collapsible item groups to the creative inventory (from Inventory
+Item Groups by Bizarre Cube, MIT). Configure them with Simple Config Lib or
+Cloth Config.
 '''
 
 [[mixins]]
@@ -40,6 +44,9 @@ config = "sampack_emitweaks.compat.mixins.json"
 
 [[mixins]]
 config = "sampack_emitweaks.emi.mixins.json"
+
+[[mixins]]
+config = "sampack_emitweaks.itemgroups.mixins.json"
 
 [[dependencies.${mod_id}]]
 modId = "neoforge"
@@ -62,4 +69,28 @@ modId = "emi"
 type = "optional"
 versionRange = "[1.1.24,)"
 ordering = "AFTER"
+side = "CLIENT"
+
+# Config screen backends for the inventory item groups; either one works.
+[[dependencies.${mod_id}]]
+modId = "simple_config_lib"
+type = "optional"
+versionRange = "[2.1,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "cloth_config"
+type = "optional"
+versionRange = "[15,)"
+ordering = "NONE"
+side = "CLIENT"
+
+# Replaced by the inventory item groups built into this mod.
+[[dependencies.${mod_id}]]
+modId = "inventory_item_groups"
+type = "incompatible"
+reason = "SamPack EMI Tweaks already includes Inventory Item Groups. Remove the separate jar."
+versionRange = "[0,)"
+ordering = "NONE"
 side = "CLIENT"
