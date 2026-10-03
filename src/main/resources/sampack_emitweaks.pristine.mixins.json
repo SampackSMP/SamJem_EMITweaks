@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.carjem.sampackemitweaks.mixin.pristine",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CreativeModeTabPristineMixin",
+    "CreativeModeTabRegistryAccessor"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

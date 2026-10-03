@@ -7,7 +7,9 @@
   "client": [
     "EmiTagsSortMixin",
     "EmiRecipeRemainderMixin",
-    "EmiItemStackSerializerMixin"
+    "EmiItemStackSerializerMixin",
+    "EmiStackListPristineTabsMixin",
+    "EmiStackListPristineIndexMixin"
   ],
   "server": [],
   "injectors": {

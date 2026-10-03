@@ -30,6 +30,10 @@ SamPack EMI reload and load-time fixes:
   during EMI's reload.
 - BCLib anvil recipes list hammers from the hammer tag instead of scanning
   every item.
+- EMI's index is built from the creative tabs as their mods made them, in
+  registry order, not as Recreative rewrote them.
+- Keeps a copy of EMI's index from before resource-pack index data is applied,
+  for tools that dump it (SamJem: IconDump).
 
 Also adds collapsible item groups to the creative inventory (from Inventory
 Item Groups by Bizarre Cube, MIT). Configure them with Simple Config Lib or
@@ -53,6 +57,9 @@ config = "sampack_emitweaks.itemgroups.mixins.json"
 
 [[mixins]]
 config = "sampack_emitweaks.creative.mixins.json"
+
+[[mixins]]
+config = "sampack_emitweaks.pristine.mixins.json"
 
 [[dependencies.${mod_id}]]
 modId = "neoforge"
