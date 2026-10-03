@@ -34,6 +34,9 @@ SamPack EMI reload and load-time fixes:
 Also adds collapsible item groups to the creative inventory (from Inventory
 Item Groups by Bizarre Cube, MIT). Configure them with Simple Config Lib or
 Cloth Config.
+
+The creative inventory can be made wider and taller (more item columns and
+rows, and more tabs per row) in the client config.
 '''
 
 [[mixins]]
@@ -47,6 +50,9 @@ config = "sampack_emitweaks.emi.mixins.json"
 
 [[mixins]]
 config = "sampack_emitweaks.itemgroups.mixins.json"
+
+[[mixins]]
+config = "sampack_emitweaks.creative.mixins.json"
 
 [[dependencies.${mod_id}]]
 modId = "neoforge"

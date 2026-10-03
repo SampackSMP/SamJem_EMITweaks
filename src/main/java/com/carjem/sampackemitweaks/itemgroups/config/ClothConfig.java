@@ -1,5 +1,7 @@
 package com.carjem.sampackemitweaks.itemgroups.config;
 
+import com.carjem.sampackemitweaks.creative.CreativeLayout;
+import com.carjem.sampackemitweaks.creative.CreativeLayoutConfig;
 import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -36,10 +38,13 @@ public class ClothConfig implements Config {
         ConfigBuilder builder = ConfigBuilder.create()
                 .setParentScreen(parent)
                 .setTitle(getTranslate("group.general"))
-                .setSavingRunnable(config::save);
+                .setSavingRunnable(() -> {
+                    config.save();
+                    CreativeLayoutConfig.SPEC.save();
+                });
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
-        ConfigCategory groups = builder.getOrCreateCategory(Component.empty());
+        ConfigCategory groups = builder.getOrCreateCategory(getTranslate("option.groups"));
         groups.addEntry(entryBuilder.startEnumSelector(getTranslate("option.sort"), Sort.class, config.sort)
                 .setDefaultValue(Sort.DEFAULT)
                 .setEnumNameProvider(e -> getTranslate(((Sort) e).getKey()))
@@ -104,7 +109,32 @@ public class ClothConfig implements Config {
         InventoryItemGroups.getTabIds().forEach(id -> ids.add(entryBuilder.startTextDescription(id).build()));
         groups.addEntry(ids.build());
 
+        addCreativeLayoutCategory(builder, entryBuilder);
+
         return builder.build();
+    }
+
+    /** The creative inventory size lives in the NeoForge client config; this just edits it. */
+    private static void addCreativeLayoutCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
+        ConfigCategory layout = builder.getOrCreateCategory(Component.translatable("sampack_emitweaks.configuration.creative_inventory"));
+        layout.addEntry(entryBuilder.startIntSlider(Component.translatable("sampack_emitweaks.configuration.columns"),
+                        CreativeLayoutConfig.COLUMNS.get(), CreativeLayout.VANILLA_COLUMNS, CreativeLayout.MAX_COLUMNS)
+                .setDefaultValue(CreativeLayout.VANILLA_COLUMNS)
+                .setTooltip(Component.translatable("sampack_emitweaks.configuration.columns.tooltip"))
+                .setSaveConsumer(CreativeLayoutConfig.COLUMNS::set)
+                .build());
+        layout.addEntry(entryBuilder.startIntSlider(Component.translatable("sampack_emitweaks.configuration.rows"),
+                        CreativeLayoutConfig.ROWS.get(), CreativeLayout.VANILLA_ROWS, CreativeLayout.MAX_ROWS)
+                .setDefaultValue(CreativeLayout.VANILLA_ROWS)
+                .setTooltip(Component.translatable("sampack_emitweaks.configuration.rows.tooltip"))
+                .setSaveConsumer(CreativeLayoutConfig.ROWS::set)
+                .build());
+        layout.addEntry(entryBuilder.startBooleanToggle(Component.translatable("sampack_emitweaks.configuration.fit_to_screen"),
+                        CreativeLayoutConfig.FIT_TO_SCREEN.get())
+                .setDefaultValue(true)
+                .setTooltip(Component.translatable("sampack_emitweaks.configuration.fit_to_screen.tooltip"))
+                .setSaveConsumer(CreativeLayoutConfig.FIT_TO_SCREEN::set)
+                .build());
     }
 
     public static ClothConfig getConfig() {

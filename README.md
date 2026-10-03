@@ -86,6 +86,36 @@ The groups use their built-in defaults unless [Simple Config Lib](https://modrin
 or [Cloth Config](https://modrinth.com/mod/cloth-config) is installed. Either one makes the groups
 editable from this mod's config button in the mod list.
 
+## Creative inventory layout (`creative`, `mixin/creative`)
+
+The creative inventory can have more item columns and rows than vanilla's 9x5. A wider inventory
+also fits more tabs per row, and so more tabs per page. Set the size in
+`config/sampack_emitweaks-client.toml`, or in the "Creative Inventory Layout" tab of the config
+screen when Cloth Config is installed:
+
+| Option | Default | Range |
+| --- | --- | --- |
+| `columns` | 9 | 9 to 32 |
+| `rows` | 5 | 5 to 20 |
+| `fit_to_screen` | true | Shrinks the size, never below vanilla, when the window is too small for it |
+
+The default is the vanilla size, and at that size every hook returns vanilla's own values. A
+changed size applies the next time the creative inventory opens.
+
+The extra columns and rows are inserted into the vanilla panel by repeating a slot column and a
+slot row of the tab's own background texture. Resource packs and modded tab backgrounds still
+apply. The inventory tab keeps its vanilla contents in the bottom-left corner, so its hotbar lines
+up with the item tabs' hotbar. Saved hotbars are padded to full rows.
+
+Every hook changes one constant or argument, so the vanilla methods still run along with other
+mods' hooks on them. The hooks were checked against the creative screen mixins of the mods in the
+SamPack pack:
+- **ReCreative**: it sets each tab's `row()`/`column()` for 5 tabs per row and draws custom tab
+  icons from them. Those are reset from the actual page layout before each frame. Its editor
+  button follows the panel's right edge.
+- **owo-lib**: custom tab textures still apply, since owo also reads `row()`/`column()`.
+- **Sounds**, **Polytone**, **REMI**: unaffected.
+
 ## Investigated, not shipped
 
 - **REMI reload-step parallelization**: `StackManager.reload()` depends on the group definitions

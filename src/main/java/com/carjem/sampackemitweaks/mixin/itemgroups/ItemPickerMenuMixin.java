@@ -1,5 +1,6 @@
 package com.carjem.sampackemitweaks.mixin.itemgroups;
 
+import com.carjem.sampackemitweaks.creative.CreativeLayout;
 import com.carjem.sampackemitweaks.itemgroups.Group;
 import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
@@ -54,6 +55,6 @@ public abstract class ItemPickerMenuMixin {
     @Unique
     private int sampack_emitweaks$currentTopRow() {
         List<Slot> slots = ((AbstractContainerMenu) (Object) this).slots;
-        return Math.max(InventoryItemGroups.calculateIndex(slots, 0), 0) / 9;
+        return Math.max(InventoryItemGroups.calculateIndex(slots, 0), 0) / CreativeLayout.get().columns;
     }
 }

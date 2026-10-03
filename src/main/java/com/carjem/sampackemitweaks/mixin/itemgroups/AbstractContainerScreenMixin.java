@@ -3,6 +3,7 @@ package com.carjem.sampackemitweaks.mixin.itemgroups;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.carjem.sampackemitweaks.creative.CreativeLayout;
 import com.carjem.sampackemitweaks.itemgroups.Group;
 import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -30,7 +31,7 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
     @Shadow protected Slot hoveredSlot;
 
     @Unique private static boolean sampack_emitweaks$onScreen(int index) {
-        return index <= 44;
+        return index < CreativeLayout.get().gridSize();
     }
 
     @Unique

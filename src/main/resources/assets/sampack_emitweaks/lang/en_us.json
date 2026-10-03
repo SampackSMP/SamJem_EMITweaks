@@ -1,0 +1,11 @@
+{
+    "sampack_emitweaks.configuration.title": "SamPack EMI Tweaks",
+    "sampack_emitweaks.configuration.creative_inventory": "Creative Inventory Layout",
+    "sampack_emitweaks.configuration.creative_inventory.tooltip": "Size of the creative inventory",
+    "sampack_emitweaks.configuration.columns": "Item Columns",
+    "sampack_emitweaks.configuration.columns.tooltip": "Item columns in the creative inventory (vanilla: 9). A wider inventory also fits more tabs per row. Applies the next time the inventory is opened.",
+    "sampack_emitweaks.configuration.rows": "Item Rows",
+    "sampack_emitweaks.configuration.rows.tooltip": "Item rows in the creative inventory, not counting the hotbar (vanilla: 5). Applies the next time the inventory is opened.",
+    "sampack_emitweaks.configuration.fit_to_screen": "Fit to Screen",
+    "sampack_emitweaks.configuration.fit_to_screen.tooltip": "Use fewer columns and rows (never fewer than vanilla) when the window is too small for the configured size."
+}
