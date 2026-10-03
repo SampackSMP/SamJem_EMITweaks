@@ -1,0 +1,25 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.carjem.sampackemitweaks.mixin.compat",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ComputerCraftCommonHooksMixin",
+    "SablePhysicsPropertiesLoaderMixin",
+    "OwoDerivedComponentMapMixin",
+    "FarmersDelightItemAbilityIngredientMixin",
+    "BclibAnvilRecipeMixin"
+  ],
+  "client": [
+    "EmiTradesPluginMixin",
+    "EnhancedTooltipsTabCollectorMixin",
+    "SablePhysicsPropertyPacketMixin",
+    "PuzzlesLibModelLocationsMixin",
+    "EmiffectMobEffectInfoMixin",
+    "RemiStackGroupManagerMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

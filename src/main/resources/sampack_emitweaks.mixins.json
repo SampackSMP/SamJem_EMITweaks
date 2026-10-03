@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.carjem.sampackemitweaks.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BuildCreativeModeTabContentsEventMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

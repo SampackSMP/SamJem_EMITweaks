@@ -1,4 +1,4 @@
-rootProject.name = "emi-reclocked"
+rootProject.name = "sampack_emitweaks"
 
 pluginManagement {
     repositories {

@@ -1,4 +1,4 @@
-package dev.reclocked.emireclocked.mixin;
+package com.carjem.sampackemitweaks.mixin.emi;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -16,14 +16,14 @@ import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.recipe.EmiShapedRecipe;
 import dev.emi.emi.runtime.EmiLog;
-import dev.reclocked.emireclocked.EmiReclocked;
+import com.carjem.sampackemitweaks.SampackEmiTweaks;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 
 /**
- * Fix #4 (default on). {@code EmiShapedRecipe.setRemainders(...)} - shared by both
+ * {@code EmiShapedRecipe.setRemainders(...)} - shared by both
  * {@code EmiShapedRecipe} and {@code EmiShapelessRecipe}'s constructors, so this runs for every
  * vanilla-style shaped/shapeless recipe any plugin registers - resolves each input slot's
  * crafting remainder by, for every candidate item in that slot, copying every *other* slot's
@@ -54,11 +54,11 @@ import net.minecraft.world.item.crafting.RecipeInput;
 public class EmiRecipeRemainderMixin {
 
     @Unique
-    private static final Map<Class<?>, Boolean> emireclocked$usesDefaultRemainingItems = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Boolean> sampack_emitweaks$usesDefaultRemainingItems = new ConcurrentHashMap<>();
 
     @Inject(method = "setRemainders", at = @At("HEAD"), cancellable = true)
-    private static void emireclocked$fastRemainders(List<EmiIngredient> input, CraftingRecipe recipe, CallbackInfo ci) {
-        if (!emireclocked$usesDefaultRemainingItems(recipe)) {
+    private static void sampack_emitweaks$fastRemainders(List<EmiIngredient> input, CraftingRecipe recipe, CallbackInfo ci) {
+        if (!sampack_emitweaks$usesDefaultRemainingItems(recipe)) {
             return;
         }
 
@@ -83,8 +83,8 @@ public class EmiRecipeRemainderMixin {
     }
 
     @Unique
-    private static boolean emireclocked$usesDefaultRemainingItems(CraftingRecipe recipe) {
-        return emireclocked$usesDefaultRemainingItems.computeIfAbsent(recipe.getClass(), cls -> {
+    private static boolean sampack_emitweaks$usesDefaultRemainingItems(CraftingRecipe recipe) {
+        return sampack_emitweaks$usesDefaultRemainingItems.computeIfAbsent(recipe.getClass(), cls -> {
             try {
                 // Recipe<T extends RecipeInput> erases getRemainingItems(T) to
                 // getRemainingItems(RecipeInput), not getRemainingItems(CraftingInput) - the
@@ -92,8 +92,8 @@ public class EmiRecipeRemainderMixin {
                 Method method = cls.getMethod("getRemainingItems", RecipeInput.class);
                 return method.getDeclaringClass() == Recipe.class;
             } catch (Exception e) {
-                EmiReclocked.LOGGER.warn(
-                    "[EMI Reclocked] Could not verify getRemainingItems for {}, falling back to EMI's original remainder logic for it",
+                SampackEmiTweaks.LOGGER.warn(
+                    "[Sampack EMI Tweaks] Could not verify getRemainingItems for {}, falling back to EMI's original remainder logic for it",
                     cls.getName());
                 return false;
             }

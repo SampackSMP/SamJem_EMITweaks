@@ -62,13 +62,13 @@ neoForge {
 }
 
 dependencies {
-    // Compile against EMI's classes (EmiStackList, EmiTags, EmiRecipes, ...) - never bundled,
-    // EMI is a required runtime dependency declared in neoforge.mods.toml instead. Coordinate
+    // Compile against EMI's classes (EmiTags, EmiShapedRecipe, ...) - never bundled, EMI is
+    // an optional runtime dependency declared in neoforge.mods.toml instead. Coordinate
     // is Modrinth's own opaque per-file version id (see gradle.properties), not EMI's version
     // string.
     compileOnly("maven.modrinth:emi:$emi_version")
 
-    // MixinExtras for @WrapOperation, used to wrap EMI's per-reload calls without overwriting
+    // MixinExtras for @WrapOperation/@ModifyExpressionValue, used to wrap calls without overwriting
     // whole methods. NeoForge bundles a MixinExtras-aware Mixin service at runtime already
     // (same reason REMI's own build.gradle only needs these two configurations, no runtime jar).
     compileOnly("io.github.llamalad7:mixinextras-common:$mixinextras_version")
@@ -86,8 +86,7 @@ tasks.withType<ProcessResources> {
         "mod_name" to project.findProperty("mod_name"),
         "mod_license" to project.findProperty("mod_license"),
         "mod_version" to mod_version,
-        "mod_authors" to project.findProperty("mod_authors"),
-        "mod_description" to project.findProperty("mod_description")
+        "mod_authors" to project.findProperty("mod_authors")
     )
     inputs.properties(replaceProperties)
     filesMatching("META-INF/neoforge.mods.toml") {

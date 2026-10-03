@@ -1,4 +1,4 @@
-package dev.reclocked.emireclocked.mixin;
+package com.carjem.sampackemitweaks.mixin.emi;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import dev.emi.emi.stack.serializer.ItemEmiStackSerializer;
 
 /**
- * Fix #5 (default on). {@code ItemEmiStackSerializer.create(...)} resolves a saved item id via
+ * {@code ItemEmiStackSerializer.create(...)} resolves a saved item id via
  * {@code EmiPort.getItemRegistry().getHolder(id).orElseThrow()} - every EMI data file that
  * references an item id no longer present in the current instance (a stale "index/stacks"
  * removal/filter list shipped by a mod for a different pack, a renamed/removed item since the
@@ -38,7 +38,7 @@ public class EmiItemStackSerializerMixin {
         method = "create",
         at = @At(value = "INVOKE", target = "Ljava/util/Optional;orElseThrow()Ljava/lang/Object;")
     )
-    private Object emireclocked$cheapOrElseThrow(Optional<?> optional) {
+    private Object sampack_emitweaks$cheapOrElseThrow(Optional<?> optional) {
         if (optional.isPresent()) {
             return optional.get();
         }

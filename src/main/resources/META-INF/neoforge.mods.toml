@@ -1,46 +1,65 @@
 modLoader = "javafml"
 loaderVersion = "${loader_version_range}"
 license = "${mod_license}"
-issueTrackerURL = ""
 
 [[mods]]
 modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
-description = '''${mod_description}'''
+description = '''
+SamPack EMI reload and load-time fixes:
+- EMI sorts tags by their cached member lists instead of re-walking the
+  registry on every comparison.
+- EMI resolves shaped/shapeless crafting remainders per item instead of
+  simulating a crafting grid per candidate, when the recipe uses vanilla's
+  default remainder logic.
+- EMI's missing-item-id exceptions skip their discarded stack traces.
+- Duplicate creative-tab entries are ignored instead of aborting the tab build.
+- ComputerCraft skips its redundant server-start tab rebuild in singleplayer.
+- Enhanced Tooltips reuses vanilla's creative-tab build instead of its own.
+- EMI Trades no longer uses the client level's random off-thread.
+- Sable applies block physics properties once per reload, not once per level,
+  and skips the redundant client-side copy in singleplayer.
+- Puzzles Lib builds its model location set once per session, in parallel,
+  instead of once per model handler.
+- owo-lib skips its per-ItemStack component derivation when it is a no-op.
+- Farmer's Delight item-ability ingredients share one registry scan per
+  ability instead of one per recipe.
+- EMIffect and REMI skip registry entries and stack groups that cannot match
+  during EMI's reload.
+- BCLib anvil recipes list hammers from the hammer tag instead of scanning
+  every item.
+'''
 
 [[mixins]]
-config = "emireclocked.mixins.json"
+config = "sampack_emitweaks.mixins.json"
+
+[[mixins]]
+config = "sampack_emitweaks.compat.mixins.json"
+
+[[mixins]]
+config = "sampack_emitweaks.emi.mixins.json"
 
 [[dependencies.${mod_id}]]
-    modId = "neoforge"
-    type = "required"
-    versionRange = "${neoforge_version_range}"
-    ordering = "NONE"
-    side = "CLIENT"
+modId = "neoforge"
+type = "required"
+versionRange = "${neoforge_version_range}"
+ordering = "NONE"
+side = "BOTH"
 
 [[dependencies.${mod_id}]]
-    modId = "minecraft"
-    type = "required"
-    versionRange = "${minecraft_version_range}"
-    ordering = "NONE"
-    side = "CLIENT"
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
 
-# We mixin directly into EMI's registry/reload classes, so EMI has to be present and loaded
-# first. Client-only, matches EMI's and REMI's own dependency declarations.
+# The EMI mixins target EMI's own classes directly; they are skipped when EMI
+# is absent (e.g. on a dedicated server).
 [[dependencies.${mod_id}]]
-    modId = "emi"
-    type = "required"
-    versionRange = "[1.1.24,)"
-    ordering = "AFTER"
-    side = "CLIENT"
-
-# Soft dependency: REMI is not required to run this add-on (fixes #1-#3 only touch EMI's own
-# classes), but this add-on is designed to sit alongside it.
-[[dependencies.${mod_id}]]
-    modId = "remi"
-    type = "optional"
-    versionRange = "[4.0.0,)"
-    ordering = "AFTER"
-    side = "CLIENT"
+modId = "emi"
+type = "optional"
+versionRange = "[1.1.24,)"
+ordering = "AFTER"
+side = "CLIENT"

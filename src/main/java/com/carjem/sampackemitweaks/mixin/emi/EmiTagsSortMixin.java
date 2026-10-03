@@ -1,4 +1,4 @@
-package dev.reclocked.emireclocked.mixin;
+package com.carjem.sampackemitweaks.mixin.emi;
 
 import java.util.Comparator;
 import java.util.List;
@@ -13,7 +13,7 @@ import dev.emi.emi.registry.EmiTags;
 import dev.emi.emi.runtime.EmiTagKey;
 
 /**
- * Fix #1: {@code EmiTags.reloadTags(Registry)} sorts every registry's tags by member count via
+ * {@code EmiTags.reloadTags(Registry)} sorts every registry's tags by member count via
  * {@code sorted((a, b) -> Long.compare(b.stream().count(), a.stream().count()))}. That
  * comparator calls {@code EmiTagKey#stream()} - which re-derives the tag's member list from
  * the live registry on every single pairwise comparison, i.e. up to O(n log n) redundant
@@ -39,7 +39,7 @@ public class EmiTagsSortMixin {
             ordinal = 1
         )
     )
-    private static Stream emireclocked$fastCountSort(Stream tags, Comparator original) {
+    private static Stream sampack_emitweaks$fastCountSort(Stream tags, Comparator original) {
         List<EmiTagKey<?>> list = (List<EmiTagKey<?>>) (List) tags.collect(Collectors.toList());
         list.sort((a, b) -> Long.compare(b.getList().size(), a.getList().size()));
         return list.stream();

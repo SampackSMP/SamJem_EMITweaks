@@ -1,0 +1,16 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.carjem.sampackemitweaks.mixin.emi",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "EmiTagsSortMixin",
+    "EmiRecipeRemainderMixin",
+    "EmiItemStackSerializerMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
