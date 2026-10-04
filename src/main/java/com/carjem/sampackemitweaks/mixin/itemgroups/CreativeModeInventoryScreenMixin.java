@@ -1,15 +1,18 @@
 package com.carjem.sampackemitweaks.mixin.itemgroups;
 
-import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.carjem.sampackemitweaks.creative.CreativeContents;
+import com.carjem.sampackemitweaks.creative.CreativeGrid;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
-import com.carjem.sampackemitweaks.itemgroups.Group;
-import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,34 +21,39 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Collection;
 
+/** Fills item tabs from {@link CreativeContents} and opens and closes their groups on click. */
 @Mixin(CreativeModeInventoryScreen.class)
-public class CreativeModeInventoryScreenMixin {
+public abstract class CreativeModeInventoryScreenMixin extends EffectRenderingInventoryScreen<CreativeModeInventoryScreen.ItemPickerMenu> {
+    @Shadow private float scrollOffs;
 
-    @Shadow private static CreativeModeTab selectedTab;
+    protected CreativeModeInventoryScreenMixin(CreativeModeInventoryScreen.ItemPickerMenu menu, Inventory inventory, Component title) {
+        super(menu, inventory, title);
+    }
+
+    /** Only item tabs are grouped; the grid lays one out again when it is filled. */
+    @Inject(method = "selectTab", at = @At("HEAD"))
+    private void sampack_emitweaks$clearGrid(CreativeModeTab tab, CallbackInfo ci) {
+        CreativeGrid.clear();
+    }
 
     @WrapOperation(method = "selectTab", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/CreativeModeTab;getDisplayItems()Ljava/util/Collection;"))
-    private Collection<ItemStack> sampack_emitweaks$groupsImplementation(CreativeModeTab selectedTab, Operation<Collection<ItemStack>> original) {
-        InventoryItemGroups.selectedTab = selectedTab;
-        InventoryItemGroups.createGroups();
-        return InventoryItemGroups.buildTabItems(original.call(selectedTab));
+    private Collection<ItemStack> sampack_emitweaks$tabContents(CreativeModeTab tab, Operation<Collection<ItemStack>> original) {
+        return CreativeContents.tabItems(tab, original.call(tab));
     }
 
-    @WrapWithCondition(method = "slotClicked", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen$ItemPickerMenu;setCarried(Lnet/minecraft/world/item/ItemStack;)V"))
-    private boolean sampack_emitweaks$toggleInsteadOfCarry(CreativeModeInventoryScreen.ItemPickerMenu instance, ItemStack itemStack, @Local(argsOnly = true) Slot slot) {
-        if (slot == null) return true;
+    /** A click on a group's header, with nothing carried, opens or closes the group instead. */
+    @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+    private void sampack_emitweaks$toggleGroup(@Nullable Slot slot, int slotId, int mouseButton, ClickType type, CallbackInfo ci) {
+        int position = CreativeGrid.position(slot);
+        if (!CreativeGrid.isHeader(position) || !menu.getCarried().isEmpty()
+                || (type != ClickType.PICKUP && type != ClickType.QUICK_MOVE)) return;
 
-        int index = InventoryItemGroups.calculateIndex(instance.slots, slot.index);
-        Group group = InventoryItemGroups.findGroupByIndex(index);
-        if (group != null && selectedTab.equals(group.getTab()) && group.getIconIndex() == index) {
-            instance.setCarried(ItemStack.EMPTY);
-            InventoryItemGroups.pendingGroup = group;
-            return false;
-        }
-        return true;
-    }
-
-    @Inject(method = "selectTab", at = @At("HEAD"))
-    private void sampack_emitweaks$updateSelectedTab(CreativeModeTab tab, CallbackInfo ci) {
-        InventoryItemGroups.selectedTab = tab;
+        ItemPickerMenuAccessor accessor = (ItemPickerMenuAccessor) menu;
+        int topRow = accessor.sampack_emitweaks$getRowIndexForScroll(scrollOffs);
+        menu.items.clear();
+        menu.items.addAll(CreativeGrid.toggle(position));
+        scrollOffs = accessor.sampack_emitweaks$getScrollForRowIndex(topRow);
+        menu.scrollTo(scrollOffs);
+        ci.cancel();
     }
 }

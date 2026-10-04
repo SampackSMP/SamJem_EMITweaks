@@ -17,5 +17,6 @@
     "sampack_emitweaks.configuration.icons_per_frame": "Icons per Frame",
     "sampack_emitweaks.configuration.icons_per_frame.tooltip": "How many icons are rendered each frame. Higher is faster, until the progress screen stutters.",
     "sampack_emitweaks.configuration.include_names": "Include Names",
-    "sampack_emitweaks.configuration.include_names.tooltip": "Also write each stack's display name into meta.json."
+    "sampack_emitweaks.configuration.include_names.tooltip": "Also write each stack's display name into meta.json.",
+    "sampack_emitweaks.creative.group_size": "%s items"
 }

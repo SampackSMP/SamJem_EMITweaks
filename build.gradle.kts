@@ -12,6 +12,7 @@ val neoforge_version: String by project
 val neoforge_version_range: String by project
 val loader_version_range: String by project
 val emi_version: String by project
+val remi_version: String by project
 val mixinextras_version: String by project
 val simple_config_lib_version: String by project
 val cloth_config_version: String by project
@@ -75,6 +76,10 @@ dependencies {
     // is Modrinth's own opaque per-file version id (see gradle.properties), not EMI's version
     // string.
     compileOnly("maven.modrinth:emi:$emi_version")
+
+    // REMI's stack groups, which the creative inventory's groups follow when it is installed.
+    // Optional at runtime like EMI: only CreativeContents.Remi touches it, behind a mod check.
+    compileOnly("maven.modrinth:reliable-emi:$remi_version")
 
     // MixinExtras for @WrapOperation/@ModifyExpressionValue, used to wrap calls without overwriting
     // whole methods. NeoForge bundles a MixinExtras-aware Mixin service at runtime already

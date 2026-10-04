@@ -7,8 +7,8 @@
   "client": [
     "AbstractContainerScreenMixin",
     "CreativeModeInventoryScreenMixin",
-    "ItemPickerMenuMixin",
-    "MinecraftMixin"
+    "ItemPickerMenuAccessor",
+    "ItemPickerMenuMixin"
   ],
   "server": [],
   "injectors": {

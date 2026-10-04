@@ -1,20 +1,16 @@
 package com.carjem.sampackemitweaks.mixin.itemgroups;
 
+import com.carjem.sampackemitweaks.creative.CreativeGrid;
+import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
-import com.carjem.sampackemitweaks.creative.CreativeLayout;
-import com.carjem.sampackemitweaks.itemgroups.Group;
-import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,65 +20,54 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
+/**
+ * Draws the creative grid's groups: an open group's items on a highlighted slot, its header on
+ * another, and a plus or minus over every header. A header's tooltip is the group's name. Only
+ * the creative item grid has list positions ({@link CreativeGrid#position}), so other screens
+ * are untouched.
+ */
 @Mixin(AbstractContainerScreen.class)
-public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMenu> {
+public abstract class AbstractContainerScreenMixin {
+    @Unique private static final ResourceLocation sampack_emitweaks$ICON_SLOT = sampack_emitweaks$sprite("icon_slot");
+    @Unique private static final ResourceLocation sampack_emitweaks$ITEM_SLOT = sampack_emitweaks$sprite("item_slot");
+    @Unique private static final ResourceLocation sampack_emitweaks$PLUS = sampack_emitweaks$sprite("plus");
+    @Unique private static final ResourceLocation sampack_emitweaks$MINUS = sampack_emitweaks$sprite("minus");
 
-    @Shadow @Final protected T menu;
     @Shadow protected Slot hoveredSlot;
 
-    @Unique private static boolean sampack_emitweaks$onScreen(int index) {
-        return index < CreativeLayout.get().gridSize();
+    @Unique
+    private static ResourceLocation sampack_emitweaks$sprite(String name) {
+        return ResourceLocation.fromNamespaceAndPath(InventoryItemGroups.NAMESPACE, "container/" + name);
     }
 
     @Unique
-    private ResourceLocation sampack_emitweaks$getSprite(String location) {
-        String id = InventoryItemGroups.NAMESPACE;
-        String path = "container/" + location;
-        return ResourceLocation.fromNamespaceAndPath(id, path);
-    }
-
-    @Unique
-    private void sampack_emitweaks$renderSprite(GuiGraphics graphics, String location, int x, int y, int size) {
+    private static void sampack_emitweaks$blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int size) {
         RenderSystem.disableDepthTest();
-        graphics.blitSprite(sampack_emitweaks$getSprite(location), x, y, size, size);
+        graphics.blitSprite(sprite, x, y, size, size);
         RenderSystem.enableDepthTest();
     }
 
     @Inject(method = "renderSlot", at = @At("HEAD"))
-    private void sampack_emitweaks$renderSlotSprites(CallbackInfo ci, @Local(argsOnly = true) GuiGraphics graphics, @Local(argsOnly = true) Slot slot) {
-        if (!InventoryItemGroups.hasGroups() || !sampack_emitweaks$onScreen(slot.index)) return;
-
-        int index = InventoryItemGroups.calculateIndex(menu.slots, slot.index);
-        Group group = InventoryItemGroups.findGroupByIndex(index);
-        if (group != null && group.isVisibility() && InventoryItemGroups.selectedTab.equals(group.getTab())) {
-            if (group.getIconIndex() == index)
-                sampack_emitweaks$renderSprite(graphics, "icon_slot", slot.x-1, slot.y-1, 18);
-            else
-                sampack_emitweaks$renderSprite(graphics, "item_slot", slot.x-1, slot.y-1, 18);
+    private void sampack_emitweaks$renderGroupSlot(GuiGraphics graphics, Slot slot, CallbackInfo ci) {
+        int position = CreativeGrid.position(slot);
+        if (CreativeGrid.isInExpandedGroup(position)) {
+            sampack_emitweaks$blit(graphics, CreativeGrid.isHeader(position) ? sampack_emitweaks$ICON_SLOT : sampack_emitweaks$ITEM_SLOT,
+                    slot.x - 1, slot.y - 1, 18);
         }
     }
 
     @Inject(method = "renderSlot", at = @At("TAIL"))
-    private void sampack_emitweaks$renderVisibilitySprites(CallbackInfo ci, @Local(argsOnly = true) GuiGraphics graphics, @Local(argsOnly = true) Slot slot) {
-        if (!InventoryItemGroups.hasGroups() || !sampack_emitweaks$onScreen(slot.index)) return;
-
-        int index = InventoryItemGroups.calculateIndex(menu.slots, slot.index);
-        Group group = InventoryItemGroups.findGroupByIndex(index);
-        if (group != null && InventoryItemGroups.selectedTab.equals(group.getTab()) && group.getIconIndex() == index) {
-            if (group.isVisibility())
-                sampack_emitweaks$renderSprite(graphics, "minus", slot.x, slot.y, 16);
-            else
-                sampack_emitweaks$renderSprite(graphics, "plus", slot.x, slot.y, 16);
+    private void sampack_emitweaks$renderGroupToggle(GuiGraphics graphics, Slot slot, CallbackInfo ci) {
+        int position = CreativeGrid.position(slot);
+        if (CreativeGrid.isHeader(position)) {
+            sampack_emitweaks$blit(graphics, CreativeGrid.isExpanded(position) ? sampack_emitweaks$MINUS : sampack_emitweaks$PLUS,
+                    slot.x, slot.y, 16);
         }
     }
 
     @WrapOperation(method = "renderTooltip", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;getTooltipFromContainerItem(Lnet/minecraft/world/item/ItemStack;)Ljava/util/List;"))
-    private List<Component> sampack_emitweaks$renderGroupName(AbstractContainerScreen instance, ItemStack itemStack, Operation<List<Component>> original) {
-        int index = InventoryItemGroups.calculateIndex(menu.slots, hoveredSlot.index);
-        Group group = InventoryItemGroups.findGroupByIndex(index);
-
-        return (group != null && InventoryItemGroups.selectedTab.equals(group.getTab()) && index == group.getIconIndex() && sampack_emitweaks$onScreen(hoveredSlot.index))
-                ? List.of(group.getName())
-                : original.call(instance, itemStack);
+    private List<Component> sampack_emitweaks$groupTooltip(AbstractContainerScreen<?> screen, ItemStack stack, Operation<List<Component>> original) {
+        int position = CreativeGrid.position(hoveredSlot);
+        return CreativeGrid.isHeader(position) ? CreativeGrid.tooltip(position) : original.call(screen, stack);
     }
 }

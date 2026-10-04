@@ -6,7 +6,9 @@
   "mixins": [],
   "client": [
     "CreativeModeInventoryScreenLayoutMixin",
+    "CreativeModeInventoryScreenSearchMixin",
     "CreativeModeTabAccessor",
+    "CreativeModeTabSearchMixin",
     "CreativeTabsScreenPageMixin",
     "ItemPickerMenuLayoutMixin"
   ],

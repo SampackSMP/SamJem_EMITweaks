@@ -17,7 +17,8 @@
     "PuzzlesLibModelLocationsMixin",
     "EmiffectMobEffectInfoMixin",
     "RemiStackGroupManagerMixin",
-    "RemiDefaultStackGroupsMixin"
+    "RemiDefaultStackGroupsMixin",
+    "RemiCreativeTabSyncMixin"
   ],
   "server": [],
   "injectors": {

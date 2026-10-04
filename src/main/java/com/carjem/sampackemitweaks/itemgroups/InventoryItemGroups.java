@@ -1,5 +1,6 @@
 package com.carjem.sampackemitweaks.itemgroups;
 
+import com.carjem.sampackemitweaks.creative.CreativeGrid.GroupKey;
 import com.carjem.sampackemitweaks.itemgroups.config.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -8,15 +9,15 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.*;
 
 import java.util.*;
 
 /**
- * Collapsible item groups in the creative inventory, ported from Bizarre Cube's Inventory Item
- * Groups (MIT, see LICENSE-InventoryItemGroups). Client-only; the mixins under
- * {@link com.carjem.sampackemitweaks.mixin.itemgroups} drive it.
+ * The item groups config, ported from Bizarre Cube's Inventory Item Groups (MIT, see
+ * LICENSE-InventoryItemGroups). Client-only. Its groups are the creative inventory's when REMI's
+ * stack groups are not available; {@link com.carjem.sampackemitweaks.creative.CreativeGrid} lays
+ * them out and the mixins under {@link com.carjem.sampackemitweaks.mixin.itemgroups} drive it.
  */
 public final class InventoryItemGroups {
     /**
@@ -24,36 +25,6 @@ public final class InventoryItemGroups {
      * Inventory Item Groups mod id so existing configs and resource-pack translations still apply.
      */
     public static final String NAMESPACE = "inventory_item_groups";
-
-    public static ArrayList<Group> groups = new ArrayList<>();
-    public static ArrayList<RawGroup> rawDefaultGroups = new ArrayList<>();
-    public static CreativeModeTab selectedTab;
-    public static Group pendingGroup = null;
-    public static ArrayList<ItemStack> tempItemStacks = new ArrayList<>();
-
-    // Lookup tables rebuilt by setIndexes() whenever tempItemStacks changes. They replace the
-    // linear scans that used to run for every slot on every frame.
-    private static final Map<ItemStack, Integer> firstIndexes = new IdentityHashMap<>();
-    private static final Map<ItemStack, Integer> lastIndexes = new IdentityHashMap<>();
-    private static Group[] groupsByIndex = new Group[0];
-
-    // Matching an item's name against every group's patterns is the expensive part of
-    // createGroups(), and selectTab() reruns it on every single tab click -- including
-    // clicking back to a tab you were just on. Cache the matched raw groups per tab so that
-    // only rebuilds when the config actually changes or the tab's display items are
-    // regenerated (e.g. a resource/data reload), instead of on every click.
-    private static final Map<CreativeModeTab, CachedRawGroups> rawGroupsCache = new IdentityHashMap<>();
-    private static Config cachedConfig = null;
-
-    private static final class CachedRawGroups {
-        final Collection<ItemStack> displayItems;
-        final ArrayList<RawGroup> rawGroups;
-
-        CachedRawGroups(Collection<ItemStack> displayItems, ArrayList<RawGroup> rawGroups) {
-            this.displayItems = displayItems;
-            this.rawGroups = rawGroups;
-        }
-    }
 
     public static void init() {
         if (ConfigHelper.isSimpleConfigLoaded()) {
@@ -92,114 +63,46 @@ public final class InventoryItemGroups {
         return list;
     }
 
-    private static int indexOfStack(ItemStack stack) {
-        Integer index = firstIndexes.get(stack);
-        return index != null ? index : -1;
-    }
-
-    public static int calculateIndex(List<Slot> slots, int slotIndex) {
-        if (slots.isEmpty()) return -1;
-
-        int result;
-        int secondItemIndex = slots.size() >= 2 ? indexOfStack(slots.get(1).getItem()) : -1;
-
-        if (secondItemIndex >= 0) {
-            result = secondItemIndex;
-            if (!slots.get(0).getItem().equals(slots.get(1).getItem())) result--;
-        } else {
-            result = indexOfStack(slots.get(0).getItem());
-        }
-
-        if (result < 0) result = 0;
-        return result + slotIndex;
-    }
-
-    public static boolean hasGroups() {
-        return !groups.isEmpty();
-    }
-
-    public static ArrayList<Group> groupsOnSelectedTab(CreativeModeTab selectedTab) {
-        ArrayList<Group> groupsOnSelectedTab = new ArrayList<>();
-        for (Group group : groups) {
-            if (selectedTab.equals(group.getTab()))
-                groupsOnSelectedTab.add(group);
-        }
-        return groupsOnSelectedTab;
-    }
-
-    public static Group findGroupByIndex(int index) {
-        // groups is cleared when the screen closes, without touching the table below
-        if (groups.isEmpty()) return null;
-        return index >= 0 && index < groupsByIndex.length ? groupsByIndex[index] : null;
-    }
-
     /**
-     * Builds the list shown for a tab: the tab's display items with every group collapsed
-     * down to its icon. Also refreshes the index tables.
+     * Each item's group from the config's groups for this tab, by position (null for none): the
+     * first group, in config order, whose patterns or item list match the item's id.
      */
-    public static ArrayList<ItemStack> buildTabItems(Collection<ItemStack> displayItems) {
-        ArrayList<ItemStack> newStack = new ArrayList<>(displayItems);
+    public static GroupKey[] groupsFor(String tabId, List<ItemStack> items) {
+        GroupKey[] result = new GroupKey[items.size()];
 
-        Set<ItemStack> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (Group group : groupsOnSelectedTab(selectedTab)) {
-            hidden.addAll(group.getItems());
-            hidden.remove(group.getIcon());
+        List<ItemGroup> tabGroups = new ArrayList<>();
+        for (ItemGroup group : Config.get().groups()) {
+            if (tabId.equals(group.tabId))
+                tabGroups.add(group);
         }
-        if (!hidden.isEmpty())
-            newStack.removeIf(hidden::contains);
+        if (tabGroups.isEmpty()) return result;
 
-        tempItemStacks = newStack;
-        setIndexes();
-        return newStack;
-    }
-
-    public static void setIndexes() {
-        firstIndexes.clear();
-        lastIndexes.clear();
-        for (int i = 0; i < tempItemStacks.size(); i++) {
-            ItemStack itemStack = tempItemStacks.get(i);
-            firstIndexes.putIfAbsent(itemStack, i);
-            lastIndexes.put(itemStack, i);
+        int count = tabGroups.size();
+        GroupKey[] keys = new GroupKey[count];
+        List<Set<String>> equivalents = new ArrayList<>(count);
+        for (int g = 0; g < count; g++) {
+            ItemGroup group = tabGroups.get(g);
+            keys[g] = new GroupKey(tabId + "/" + group.groupName, getGroupTranslate(group.groupName));
+            equivalents.add(new HashSet<>(group.equivalentItems));
         }
 
-        for (Group group : groupsOnSelectedTab(selectedTab)) {
-            boolean setIcon = false;
-            boolean resetItems = false;
-            for (IndexedItemStack entry : group.getItemsWithIndexes()) {
-                Integer first = firstIndexes.get(entry.getItemStack());
-                if (first == null) continue;
-
-                int firstIndex = first;
-                int lastIndex = lastIndexes.get(entry.getItemStack());
-                if (group.isVisibility()) {
-                    if (firstIndex != lastIndex && !setIcon) {
-                        group.setIconIndex(firstIndex);
-                        entry.setIndex(lastIndex);
-                        setIcon = true;
-                    } else
-                        entry.setIndex(firstIndex);
-                } else {
-                    group.setIconIndex(firstIndex);
-                    if (!resetItems) {
-                        group.resetItemIndexes();
-                        resetItems = true;
-                    }
+        for (int i = 0; i < result.length; i++) {
+            String name = items.get(i).getItem().toString();
+            for (int g = 0; g < count; g++) {
+                ItemGroup group = tabGroups.get(g);
+                if (equivalents.get(g).contains(name) || matchesPatterns(name, group)) {
+                    result[i] = keys[g];
+                    break;
                 }
             }
         }
-
-        Group[] table = new Group[tempItemStacks.size()];
-        for (Group group : groups) {
-            putGroup(table, group.getIconIndex(), group);
-            for (IndexedItemStack entry : group.getItemsWithIndexes())
-                putGroup(table, entry.getIndex(), group);
-        }
-        groupsByIndex = table;
+        return result;
     }
 
-    private static void putGroup(Group[] table, int index, Group group) {
-        if (index >= 0 && index < table.length && table[index] == null)
-            table[index] = group;
+    /** Contains one of containedItems, and (if any are listed) lacks one of nonContainedItems. */
+    private static boolean matchesPatterns(String name, ItemGroup group) {
+        if (!containsAny(name, group.containedItems)) return false;
+        return group.nonContainedItems.isEmpty() || missesAny(name, group.nonContainedItems);
     }
 
     private static boolean containsAny(String name, List<String> parts) {
@@ -212,68 +115,6 @@ public final class InventoryItemGroups {
         for (String part : parts)
             if (!name.contains(part)) return true;
         return false;
-    }
-
-    private static void addItems(List<RawGroup> target, String groupName, List<String> containedItems, List<String> nonContainedItems, List<String> equivalentItems, List<ItemStack> stacks, String[] names) {
-        RawGroup rawGroup = new RawGroup();
-        rawGroup.name = groupName;
-        if (nonContainedItems.isEmpty())
-            nonContainedItems = List.of("1111111");
-
-        for (int i = 0; i < names.length; i++) {
-            String itemName = names[i];
-
-            boolean contained = containsAny(itemName, containedItems)
-                    && missesAny(itemName, nonContainedItems);
-
-            if (contained || equivalentItems.contains(itemName))
-                rawGroup.items.add(stacks.get(i));
-        }
-
-        target.add(rawGroup);
-    }
-
-    private static ArrayList<RawGroup> matchRawGroups(String selectedTabId, Collection<ItemStack> displayItems) {
-        ArrayList<RawGroup> result = new ArrayList<>();
-
-        List<ItemGroup> tabGroups = new ArrayList<>();
-        for (ItemGroup group : Config.get().groups()) {
-            if (selectedTabId.equals(group.tabId))
-                tabGroups.add(group);
-        }
-        if (tabGroups.isEmpty()) return result;
-
-        // Item names are what the group patterns match against, so build them once per tab
-        // instead of once per group.
-        List<ItemStack> stacks = new ArrayList<>(displayItems);
-        String[] names = new String[stacks.size()];
-        for (int i = 0; i < names.length; i++)
-            names[i] = stacks.get(i).getItem().toString();
-
-        for (ItemGroup group : tabGroups)
-            addItems(result, group.groupName, group.containedItems, group.nonContainedItems, group.equivalentItems, stacks, names);
-
-        return result;
-    }
-
-    public static void createGroups() {
-        groups.clear();
-
-        if (Config.get() != cachedConfig) {
-            rawGroupsCache.clear();
-            cachedConfig = Config.get();
-        }
-
-        Collection<ItemStack> displayItems = selectedTab.getDisplayItems();
-        CachedRawGroups cached = rawGroupsCache.get(selectedTab);
-        if (cached == null || cached.displayItems != displayItems) {
-            cached = new CachedRawGroups(displayItems, matchRawGroups(getTabId(selectedTab), displayItems));
-            rawGroupsCache.put(selectedTab, cached);
-        }
-        rawDefaultGroups = cached.rawGroups;
-
-        rawDefaultGroups.forEach(rawGroup -> groups.add(new Group(getGroupTranslate(rawGroup), selectedTab, rawGroup.items)));
-        groups.removeIf(group -> group.getItems().size() < 3);
     }
 
     public static List<ItemGroup> getDefaultGroups() {
@@ -420,11 +261,11 @@ public final class InventoryItemGroups {
         list.add(group);
     }
 
-    public static Component getGroupTranslate(RawGroup rawGroup) {
-        String key = "group_name.inventory_item_groups." + rawGroup.name;
+    public static Component getGroupTranslate(String groupName) {
+        String key = "group_name.inventory_item_groups." + groupName;
         return Language.getInstance().has(key)
                 ? Component.translatable(key)
-                : Component.literal(rawGroup.name);
+                : Component.literal(groupName);
     }
 
     private static HoverEvent getHoverEvent(Component component) {
