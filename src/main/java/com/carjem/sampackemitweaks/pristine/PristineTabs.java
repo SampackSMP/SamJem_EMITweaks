@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,8 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * that already happen, and lists the tabs in the game's own order.
  *
  * The custom tabs {@link CreativeTabRules} registers are left out of everything here.
- *
- * Public API: other mods (IconDump) read this by reflection; keep the signatures stable.
  */
 public final class PristineTabs {
 
@@ -97,13 +96,29 @@ public final class PristineTabs {
         return ids(displayOrder());
     }
 
+    /**
+     * Every tab: {@link #displayOrder()}, then the ones it leaves out (search, hotbar, inventory,
+     * op blocks) in registry order. The pack's custom tabs are left out.
+     */
+    public static List<CreativeModeTab> order() {
+        LinkedHashSet<CreativeModeTab> tabs = new LinkedHashSet<>(displayOrder());
+        tabs.addAll(registryOrder());
+        return List.copyOf(tabs);
+    }
+
+    /** The tab's items as last built, or its live display items if it has not been built since startup. */
+    public static Collection<ItemStack> displayItems(CreativeModeTab tab) {
+        Snapshot snapshot = get(tab);
+        return snapshot != null ? snapshot.displayItems() : tab.getDisplayItems();
+    }
+
     private static List<CreativeModeTab> withoutCustomTabs(List<CreativeModeTab> tabs) {
         return tabs.stream()
                 .filter(tab -> !CreativeTabRules.isOwnTab(BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab)))
                 .toList();
     }
 
-    private static List<ResourceLocation> ids(List<CreativeModeTab> tabs) {
+    public static List<ResourceLocation> ids(List<CreativeModeTab> tabs) {
         List<ResourceLocation> ids = new ArrayList<>(tabs.size());
         for (CreativeModeTab tab : tabs) {
             ResourceLocation id = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab);

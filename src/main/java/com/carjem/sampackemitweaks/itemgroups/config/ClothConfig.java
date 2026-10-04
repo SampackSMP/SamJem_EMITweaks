@@ -1,7 +1,7 @@
 package com.carjem.sampackemitweaks.itemgroups.config;
 
 import com.carjem.sampackemitweaks.creative.CreativeLayout;
-import com.carjem.sampackemitweaks.creative.CreativeLayoutConfig;
+import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -40,7 +40,7 @@ public class ClothConfig implements Config {
                 .setTitle(getTranslate("group.general"))
                 .setSavingRunnable(() -> {
                     config.save();
-                    CreativeLayoutConfig.SPEC.save();
+                    ClientConfig.SPEC.save();
                 });
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
@@ -110,6 +110,7 @@ public class ClothConfig implements Config {
         groups.addEntry(ids.build());
 
         addCreativeLayoutCategory(builder, entryBuilder);
+        addIconExportCategory(builder, entryBuilder);
 
         return builder.build();
     }
@@ -118,22 +119,51 @@ public class ClothConfig implements Config {
     private static void addCreativeLayoutCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
         ConfigCategory layout = builder.getOrCreateCategory(Component.translatable("sampack_emitweaks.configuration.creative_inventory"));
         layout.addEntry(entryBuilder.startIntSlider(Component.translatable("sampack_emitweaks.configuration.columns"),
-                        CreativeLayoutConfig.COLUMNS.get(), CreativeLayout.VANILLA_COLUMNS, CreativeLayout.MAX_COLUMNS)
+                        ClientConfig.COLUMNS.get(), CreativeLayout.VANILLA_COLUMNS, CreativeLayout.MAX_COLUMNS)
                 .setDefaultValue(CreativeLayout.VANILLA_COLUMNS)
                 .setTooltip(Component.translatable("sampack_emitweaks.configuration.columns.tooltip"))
-                .setSaveConsumer(CreativeLayoutConfig.COLUMNS::set)
+                .setSaveConsumer(ClientConfig.COLUMNS::set)
                 .build());
         layout.addEntry(entryBuilder.startIntSlider(Component.translatable("sampack_emitweaks.configuration.rows"),
-                        CreativeLayoutConfig.ROWS.get(), CreativeLayout.VANILLA_ROWS, CreativeLayout.MAX_ROWS)
+                        ClientConfig.ROWS.get(), CreativeLayout.VANILLA_ROWS, CreativeLayout.MAX_ROWS)
                 .setDefaultValue(CreativeLayout.VANILLA_ROWS)
                 .setTooltip(Component.translatable("sampack_emitweaks.configuration.rows.tooltip"))
-                .setSaveConsumer(CreativeLayoutConfig.ROWS::set)
+                .setSaveConsumer(ClientConfig.ROWS::set)
                 .build());
         layout.addEntry(entryBuilder.startBooleanToggle(Component.translatable("sampack_emitweaks.configuration.fit_to_screen"),
-                        CreativeLayoutConfig.FIT_TO_SCREEN.get())
+                        ClientConfig.FIT_TO_SCREEN.get())
                 .setDefaultValue(true)
                 .setTooltip(Component.translatable("sampack_emitweaks.configuration.fit_to_screen.tooltip"))
-                .setSaveConsumer(CreativeLayoutConfig.FIT_TO_SCREEN::set)
+                .setSaveConsumer(ClientConfig.FIT_TO_SCREEN::set)
+                .build());
+    }
+
+    /** The /icondump settings, also in the NeoForge client config. */
+    private static void addIconExportCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
+        ConfigCategory export = builder.getOrCreateCategory(Component.translatable("sampack_emitweaks.configuration.icon_export"));
+        export.addEntry(entryBuilder.startIntField(Component.translatable("sampack_emitweaks.configuration.default_size"),
+                        ClientConfig.ICON_SIZE.get())
+                .setDefaultValue(32).setMin(1).setMax(512)
+                .setTooltip(Component.translatable("sampack_emitweaks.configuration.default_size.tooltip"))
+                .setSaveConsumer(ClientConfig.ICON_SIZE::set)
+                .build());
+        export.addEntry(entryBuilder.startIntField(Component.translatable("sampack_emitweaks.configuration.max_sheet_size"),
+                        ClientConfig.MAX_SHEET_SIZE.get())
+                .setDefaultValue(2048).setMin(16).setMax(16384)
+                .setTooltip(Component.translatable("sampack_emitweaks.configuration.max_sheet_size.tooltip"))
+                .setSaveConsumer(ClientConfig.MAX_SHEET_SIZE::set)
+                .build());
+        export.addEntry(entryBuilder.startIntField(Component.translatable("sampack_emitweaks.configuration.icons_per_frame"),
+                        ClientConfig.ICONS_PER_FRAME.get())
+                .setDefaultValue(64).setMin(1).setMax(4096)
+                .setTooltip(Component.translatable("sampack_emitweaks.configuration.icons_per_frame.tooltip"))
+                .setSaveConsumer(ClientConfig.ICONS_PER_FRAME::set)
+                .build());
+        export.addEntry(entryBuilder.startBooleanToggle(Component.translatable("sampack_emitweaks.configuration.include_names"),
+                        ClientConfig.INCLUDE_NAMES.get())
+                .setDefaultValue(true)
+                .setTooltip(Component.translatable("sampack_emitweaks.configuration.include_names.tooltip"))
+                .setSaveConsumer(ClientConfig.INCLUDE_NAMES::set)
                 .build());
     }
 

@@ -1,5 +1,6 @@
 package com.carjem.sampackemitweaks.creative;
 
+import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -58,13 +59,13 @@ public final class CreativeLayout {
      * slot count is fixed for the life of the menu.
      */
     public static void refresh() {
-        active = CreativeLayoutConfig.SPEC.isLoaded() ? fromConfig() : VANILLA;
+        active = ClientConfig.SPEC.isLoaded() ? fromConfig() : VANILLA;
     }
 
     private static CreativeLayout fromConfig() {
-        int columns = CreativeLayoutConfig.COLUMNS.get();
-        int rows = CreativeLayoutConfig.ROWS.get();
-        if (CreativeLayoutConfig.FIT_TO_SCREEN.get()) {
+        int columns = ClientConfig.COLUMNS.get();
+        int rows = ClientConfig.ROWS.get();
+        if (ClientConfig.FIT_TO_SCREEN.get()) {
             Window window = Minecraft.getInstance().getWindow();
             int spareWidth = window.getGuiScaledWidth() - 2 * FIT_SIDE_MARGIN - VANILLA_WIDTH;
             int spareHeight = window.getGuiScaledHeight() - 2 * FIT_VERTICAL_MARGIN - VANILLA_HEIGHT;

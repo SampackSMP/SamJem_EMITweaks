@@ -6,10 +6,11 @@ the way. Every fix is a mixin into one specific mod. If that mod isn't installed
 skipped.
 
 This mod merges and replaces **Sampack_CreativeTabFix** (`sampack_tabfix`), **EMI Reclocked**
-(`emireclocked`) and **SamJem_InventoryItemGroups** (`inventory_item_groups`), and takes over from
-**Recreative** (`recreative`) for the pack's creative tabs. Remove those jars when you install this
-one. The mod declares `inventory_item_groups` and `recreative` incompatible, so a leftover copy is
-reported at startup instead of applying twice.
+(`emireclocked`), **SamJem_InventoryItemGroups** (`inventory_item_groups`) and **SamJem: IconDump**
+(`samjem_icondump`), and takes over from **Recreative** (`recreative`) for the pack's creative tabs.
+Remove those jars when you install this one. The mod declares `inventory_item_groups`,
+`samjem_icondump` and `recreative` incompatible, so a leftover copy is reported at startup instead
+of applying twice.
 
 It is meant to run alongside [EmiAccelerator](https://modrinth.com/mod/emiaccelerator), not to
 replace it. EmiAccelerator disk-caches EMI's item list and defers `EmiSearch.bake()`, and this mod
@@ -114,8 +115,8 @@ registry is not synced to clients). An id another mod already registers is skipp
 Hidden and reordered tabs apply to the creative screen's pages, to `CreativeModeTabs.tabs()` (which
 REMI's tab sidebar reads), and to the tab the screen opens on.
 
-EMI's index and IconDump still see the game's own tabs: `PristineTabs` and `PristineEmiIndex`
-leave the custom tabs out and ignore the hiding and ordering.
+EMI's index and the `/icondump` dumps still see the game's own tabs: `PristineTabs` and
+`PristineEmiIndex` leave the custom tabs out and ignore the hiding and ordering.
 
 ## Creative inventory layout (`creative`, `mixin/creative`)
 
@@ -129,6 +130,9 @@ screen when Cloth Config is installed:
 | `columns` | 9 | 9 to 32 |
 | `rows` | 5 | 5 to 20 |
 | `fit_to_screen` | true | Shrinks the size, never below vanilla, when the window is too small for it |
+
+These are the `creative_inventory` section. The same file's `icon_export` section holds the
+[icon export](#icon-and-data-dumps-icondump) settings.
 
 The default is the vanilla size, and at that size every hook returns vanilla's own values. A
 changed size applies the next time the creative inventory opens.
@@ -144,6 +148,127 @@ SamPack pack:
 - **owo-lib**: custom tab textures still apply. owo reads each tab's `row()`/`column()`, which
   are reset from the actual page layout before each frame.
 - **Sounds**, **Polytone**, **REMI**: unaffected.
+
+## Icon and data dumps (`icondump`)
+
+Everything [InvIndexLedger](https://github.com/SampackSMP/InvIndexLedger) reads from the game,
+merged in from **SamJem: IconDump**. Client only. The commands, output folders and file formats are
+unchanged from the standalone mod.
+
+```
+/icondump export [size] [mod <id> | modRegex <regex> | match <regex>]
+/icondump update [size] <regex>
+/icondump data [emi | chipped | tabs]
+/icondump pack
+```
+
+### Icons (`export`, `update`)
+
+Every item, fluid and EMI stack, rendered into a few PNG spritesheets plus a `meta.json` index in
+`<minecraft>/icon-sheets-x<size>/`. It does the job of
+[IconExporter](https://github.com/CyclopsMC/IconExporter) (MIT), with a different output:
+
+- **Sheets:** `sheet_000.png`, `sheet_001.png`, … (2048×2048 by default: 4,096 icons each at
+  32px), instead of one file per stack.
+- **Exact ids:** every tile is keyed by the id `EmiIngredientSerializers` gives it, the same string
+  `emi_dump.json` lists the stack under (`item:minecraft:oak_log`).
+- **Unlisted items:** registered items that neither EMI nor any creative tab shows are rendered
+  too, from their default stack, and listed under `unlisted`.
+- **True transparency:** each icon is drawn over black and over white, and alpha is recovered
+  from the difference.
+- **Speed:** icons render straight into offscreen sheets, 64 per frame. The GUI scale and window
+  size make no difference.
+
+`export` writes a fresh folder (size defaults to 32), replacing whatever was there. `mod` and
+`modRegex` narrow it by namespace, `match` by stack id. `update` redraws only the stacks whose id
+matches `<regex>`, in place in an existing export: a stack it has is redrawn over its own tile, a
+new matching stack is appended, and one that no longer exists is dropped from `meta.json`. Regexes
+are Java regexes found anywhere in the id; anchor with `^`/`$` for a whole match.
+
+```
+/icondump export match item:minecraft:.*_log   # a standalone dump of just these
+/icondump update ^item:chipped:                # redraw just these inside the full dump
+```
+
+Esc on the progress screen cancels. A cancelled `export` leaves no `meta.json`, which readers take
+to mean "incomplete". A cancelled `update` leaves the export as it was. `meta.json` is always
+written last and replaced by a rename:
+
+```jsonc
+{
+  "format": 1,
+  "generator": "sampack_emitweaks 2.1.0",
+  "minecraft": "1.21.1",
+  "source": "emi",            // or "creative" without EMI
+  "size": 32,
+  "columns": 64,              // tiles per sheet row
+  "created": "2026-10-01T15:46:00Z",
+  "sheets": [{"file": "sheet_000.png", "width": 2048, "height": 2048, "count": 4096}],
+  "icons": {"item:minecraft:stone": [0, 0, 0]},   // id -> [sheet, x, y] in pixels
+  "names": {"item:minecraft:stone": "Stone"},
+  "unlisted": ["item:minecraft:debug_stick"],
+  "failed": []                // ids whose render threw (see the log)
+}
+```
+
+Without EMI, the stacks come from the creative tabs as their mods built them (`PristineTabs`) and
+the source fluids, keyed in EMI's id shape.
+
+### Data (`data`)
+
+Writes into `<minecraft>/icondump/`, all three files or the one named. Run it in singleplayer: the
+Chipped recipes come from the integrated server. Each file is written through a temp file and a
+rename, and a part that cannot run is reported and skipped without stopping the others.
+
+- **`emi_dump.json`** (format 3, needs EMI):
+  - `added`: every stack EMI shows, in its order. With a pack deployed, this is the pack's order.
+  - `index`: the same, for EMI's list before any resource pack's index data (InvIndexLedger's
+    output included) removes or reorders stacks (`PristineEmiIndex`). Since EMI's index is built
+    from the pristine creative tabs, this is the game's own order even with the pack deployed.
+  - `components`: stack id → its component patch as a json string, for every stack in `added` or
+    `index`, in the encoding the creative tab rules' `components` field reads.
+  - `registry`: every registered item.
+  - `tags`: item tag → members.
+- **`chipped_recipes.json`** (format 2): `{"recipes": {id: recipe json}}` for every
+  `chipped:workbench` recipe, generated ones included. Singleplayer only.
+- **`creative_tabs.json`**: a flat array of every registered creative tab id, in NeoForge's own
+  order rather than the pack's `tab_order`, without the pack's custom tabs.
+
+### Pack dump (`pack`)
+
+Writes `<minecraft>/icondump/pack/<section>.json`, each `{"format": 1, "data": ...}`, then
+`manifest.json` with every section's count and every entry that failed. Singleplayer only.
+
+| Section | |
+|---|---|
+| `mods` | mod id → name, version |
+| `registries` | every id of every registry, built-in and datapack, sorted |
+| `tags` | registry → tag → member ids |
+| `items` | name, stack size, durability, food |
+| `blocks` | name, hardness, blast resistance, its item |
+| `entities`, `effects` | name, category |
+| `enchantments` | name, max level, mutually exclusive enchantments |
+| `creative_tabs` | name, item ids as built, and as displayed where they differ |
+| `recipes` | type, result and count, ingredients (a tag kept by name; past 24 options, only the count) |
+| `biomes` | placed features per step, and spawns per category, after biome modifiers |
+| `dimensions` | generator, biome source, the biomes it can place |
+| `structures` | generation step, biomes |
+| `loot_tables` | every loot table id |
+
+### Config
+
+The `icon_export` section of `config/sampack_emitweaks-client.toml`, also on the config screen.
+Settings from the old `config/samjem_icondump-client.toml` are not carried over.
+
+| Option | Default | |
+| --- | --- | --- |
+| `default_size` | 32 | Icon size when the command gives none |
+| `max_sheet_size` | 2048 | Sheet width/height cap (also capped by the GPU) |
+| `icons_per_frame` | 64 | Icons rendered per frame |
+| `include_names` | true | Write display names into `meta.json` |
+
+The code is MIT-licensed (portions from IconExporter by rubensworks). Its notice is in
+`LICENSE-IconDump` and ships inside the jar.
 
 ## Investigated, not shipped
 

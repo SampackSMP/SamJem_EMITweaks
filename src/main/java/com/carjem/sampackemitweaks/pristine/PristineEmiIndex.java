@@ -17,8 +17,7 @@ import java.util.List;
  * {@link PristineTabs} feeding EMI's creative-tab source, nothing the pack's creative tab rules or the index data
  * does reaches it.
  *
- * Only loaded when EMI is. Public API: other mods (IconDump) read this by reflection; keep the
- * signatures stable.
+ * Only loaded when EMI is. Read by {@link com.carjem.sampackemitweaks.icondump.data.EmiDump}.
  */
 public final class PristineEmiIndex {
     private static volatile List<EmiStack> stacks;

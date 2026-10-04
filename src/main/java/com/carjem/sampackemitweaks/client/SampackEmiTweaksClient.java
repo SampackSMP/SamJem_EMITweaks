@@ -1,7 +1,7 @@
 package com.carjem.sampackemitweaks.client;
 
 import com.carjem.sampackemitweaks.compat.ModelLocationsCache;
-import com.carjem.sampackemitweaks.creative.CreativeLayoutConfig;
+import com.carjem.sampackemitweaks.icondump.IconDump;
 import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.carjem.sampackemitweaks.itemgroups.config.ConfigHelper;
 import com.carjem.sampackemitweaks.tabs.CreativeTabReload;
@@ -22,15 +22,17 @@ public final class SampackEmiTweaksClient {
     public static void init(IEventBus modBus, ModContainer container) {
         modBus.addListener(ModelEvent.BakingCompleted.class, event -> ModelLocationsCache.clear());
 
-        container.registerConfig(ModConfig.Type.CLIENT, CreativeLayoutConfig.SPEC);
+        container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
 
         CreativeTabRules.load();
         modBus.addListener(RegisterEvent.class, CreativeTabRules::register);
         CreativeTabReload.init(modBus);
 
+        IconDump.init();
+
         InventoryItemGroups.init();
         // The item groups' config screen (Cloth Config or Simple Config Lib) when one is
-        // installed; otherwise NeoForge's own screen, which covers the creative layout config.
+        // installed; otherwise NeoForge's own screen, which covers the client config.
         container.registerExtensionPoint(IConfigScreenFactory.class,
                 (mod, parent) -> ConfigHelper.isConfigLoaded()
                         ? ConfigHelper.getScreen(parent)

@@ -91,8 +91,9 @@ dependencies {
 }
 
 tasks.jar {
-    // The inventory item groups code is MIT-licensed and must ship with its notice.
+    // The inventory item groups and IconDump code are MIT-licensed and must ship with their notices.
     from("LICENSE-InventoryItemGroups")
+    from("LICENSE-IconDump")
 }
 
 tasks.withType<ProcessResources> {

@@ -7,6 +7,7 @@ modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
+credits = "Inventory Item Groups by Bizarre Cube (MIT). Icon export based on IconExporter by rubensworks (MIT)."
 description = '''
 SamPack EMI reload and load-time fixes:
 - EMI sorts tags by their cached member lists instead of re-walking the
@@ -35,7 +36,7 @@ SamPack EMI reload and load-time fixes:
 - EMI's index is built from the creative tabs as their mods made them, in
   registry order, not as the pack's tab rules arrange them.
 - Keeps a copy of EMI's index from before resource-pack index data is applied,
-  for tools that dump it (SamJem: IconDump).
+  for /icondump data.
 
 Also adds collapsible item groups to the creative inventory (from Inventory
 Item Groups by Bizarre Cube, MIT). Configure them with Simple Config Lib or
@@ -47,6 +48,11 @@ place of Recreative.
 
 The creative inventory can be made wider and taller (more item columns and
 rows, and more tabs per row) in the client config.
+
+Includes SamJem: IconDump (/icondump): renders every item, fluid and EMI
+stack into a few spritesheets keyed by EMI stack id, and dumps EMI's stack
+list, item tags, chipped recipes, creative tabs and the whole pack for
+InvIndexLedger. Icon rendering based on IconExporter by rubensworks (MIT).
 '''
 
 [[mixins]]
@@ -113,6 +119,15 @@ side = "CLIENT"
 modId = "inventory_item_groups"
 type = "incompatible"
 reason = "SamPack EMI Tweaks already includes Inventory Item Groups. Remove the separate jar."
+versionRange = "[0,)"
+ordering = "NONE"
+side = "CLIENT"
+
+# Replaced by the /icondump commands built into this mod; both would register them.
+[[dependencies.${mod_id}]]
+modId = "samjem_icondump"
+type = "incompatible"
+reason = "SamPack EMI Tweaks already includes SamJem: IconDump. Remove the separate jar."
 versionRange = "[0,)"
 ordering = "NONE"
 side = "CLIENT"

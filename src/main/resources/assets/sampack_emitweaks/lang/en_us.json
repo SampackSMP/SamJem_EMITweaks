@@ -7,5 +7,15 @@
     "sampack_emitweaks.configuration.rows": "Item Rows",
     "sampack_emitweaks.configuration.rows.tooltip": "Item rows in the creative inventory, not counting the hotbar (vanilla: 5). Applies the next time the inventory is opened.",
     "sampack_emitweaks.configuration.fit_to_screen": "Fit to Screen",
-    "sampack_emitweaks.configuration.fit_to_screen.tooltip": "Use fewer columns and rows (never fewer than vanilla) when the window is too small for the configured size."
+    "sampack_emitweaks.configuration.fit_to_screen.tooltip": "Use fewer columns and rows (never fewer than vanilla) when the window is too small for the configured size.",
+    "sampack_emitweaks.configuration.icon_export": "Icon Export",
+    "sampack_emitweaks.configuration.icon_export.tooltip": "Settings for /icondump export and /icondump update",
+    "sampack_emitweaks.configuration.default_size": "Default Icon Size",
+    "sampack_emitweaks.configuration.default_size.tooltip": "Icon size in pixels when /icondump export or update is given none.",
+    "sampack_emitweaks.configuration.max_sheet_size": "Max Sheet Size",
+    "sampack_emitweaks.configuration.max_sheet_size.tooltip": "Largest width and height of one sheet, in pixels. 2048 at 32px holds 4096 icons. Also capped at what the GPU supports.",
+    "sampack_emitweaks.configuration.icons_per_frame": "Icons per Frame",
+    "sampack_emitweaks.configuration.icons_per_frame.tooltip": "How many icons are rendered each frame. Higher is faster, until the progress screen stutters.",
+    "sampack_emitweaks.configuration.include_names": "Include Names",
+    "sampack_emitweaks.configuration.include_names.tooltip": "Also write each stack's display name into meta.json."
 }
