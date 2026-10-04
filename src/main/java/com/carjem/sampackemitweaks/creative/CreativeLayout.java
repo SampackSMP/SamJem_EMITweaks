@@ -123,15 +123,15 @@ public final class CreativeLayout {
      * repeated column and moves right with the rest of the panel.
      *
      * <p>The inventory tab has no repeating strip, so it stretches a plain column (x=190, just
-     * inside the right border) and a plain row (y=4, just under the top border) instead. Its
-     * contents stay in the bottom-left corner, where the hotbar lines up with the item tabs'.
+     * inside the right border) and a plain row (y=130, just under the hotbar) instead, so the
+     * drawn slots stay at their vanilla top-left positions along with the real ones.
      */
     public void blitBackground(GuiGraphics graphics, ResourceLocation texture, int x, int y, boolean inventoryTab) {
         List<Segment> xs = inventoryTab
                 ? stretched(190, extraWidth(), VANILLA_WIDTH)
                 : tiled(44, 26, VANILLA_COLUMNS - 1, extraWidth(), VANILLA_WIDTH);
         List<Segment> ys = inventoryTab
-                ? stretched(4, extraHeight(), VANILLA_HEIGHT)
+                ? stretched(130, extraHeight(), VANILLA_HEIGHT)
                 : tiled(53, 35, VANILLA_ROWS - 1, extraHeight(), VANILLA_HEIGHT);
         for (Segment sx : xs) {
             for (Segment sy : ys) {

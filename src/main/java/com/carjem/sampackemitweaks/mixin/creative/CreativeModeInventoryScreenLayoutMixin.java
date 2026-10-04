@@ -81,28 +81,8 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
         return x + CreativeLayout.get().extraWidth();
     }
 
-    // The inventory tab keeps its vanilla 195x136 contents in the bottom-left corner, so its
-    // hotbar lines up with the item tabs' hotbar.
-
-    @ModifyArg(method = "selectTab", index = 3, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen$SlotWrapper;<init>(Lnet/minecraft/world/inventory/Slot;III)V"))
-    private int sampack_emitweaks$inventorySlotY(int y) {
-        return y + CreativeLayout.get().extraHeight();
-    }
-
-    @ModifyArg(method = "selectTab", index = 3, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/Slot;<init>(Lnet/minecraft/world/Container;III)V"))
-    private int sampack_emitweaks$destroySlotY(int y) {
-        return y + CreativeLayout.get().extraHeight();
-    }
-
-    @ModifyArg(method = "renderBg", index = 2, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/InventoryScreen;renderEntityInInventoryFollowsMouse(Lnet/minecraft/client/gui/GuiGraphics;IIIIIFFFLnet/minecraft/world/entity/LivingEntity;)V"))
-    private int sampack_emitweaks$playerTop(int y) {
-        return y + CreativeLayout.get().extraHeight();
-    }
-
-    @ModifyArg(method = "renderBg", index = 4, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/InventoryScreen;renderEntityInInventoryFollowsMouse(Lnet/minecraft/client/gui/GuiGraphics;IIIIIFFFLnet/minecraft/world/entity/LivingEntity;)V"))
-    private int sampack_emitweaks$playerBottom(int y) {
-        return y + CreativeLayout.get().extraHeight();
-    }
+    // The inventory tab's contents (slots, player model, destroy slot) are left at their vanilla
+    // top-left positions so widgets other mods anchor to them (e.g. curios) stay aligned.
 
     /**
      * Saved hotbars are 9 items per row; pad each to a full grid row so they don't wrap into
