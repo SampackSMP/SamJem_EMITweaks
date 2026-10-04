@@ -96,7 +96,7 @@ editable from this mod's config button in the mod list.
 
 Replaces Recreative for the pack's creative tabs. InvIndexLedger's `build` writes the rules to
 `config/sampack_emitweaks/creative_tabs.json`. The mod reads that file at startup. After a build,
-run `/sampack_emitweaks reload_tabs` in game, then reopen the creative inventory. It re-reads the file,
+run `/emitweaks reload_tabs` in game, then reopen the creative inventory. It re-reads the file,
 rebuilds the tabs and reloads EMI. F3+T re-reads the file and rebuilds the tabs too. A tab id that
 is new since startup still needs a restart, and the command says so. The file is a json array of
 rules, in the format Recreative read:
@@ -115,7 +115,7 @@ registry is not synced to clients). An id another mod already registers is skipp
 Hidden and reordered tabs apply to the creative screen's pages, to `CreativeModeTabs.tabs()` (which
 REMI's tab sidebar reads), and to the tab the screen opens on.
 
-EMI's index and the `/icondump` dumps still see the game's own tabs: `PristineTabs` and
+EMI's index and the `/emitweaks export` dumps still see the game's own tabs: `PristineTabs` and
 `PristineEmiIndex` leave the custom tabs out and ignore the hiding and ordering.
 
 ## Creative inventory layout (`creative`, `mixin/creative`)
@@ -132,7 +132,7 @@ screen when Cloth Config is installed:
 | `fit_to_screen` | true | Shrinks the size, never below vanilla, when the window is too small for it |
 
 These are the `creative_inventory` section. The same file's `icon_export` section holds the
-[icon export](#icon-and-data-dumps-icondump) settings.
+[icon export](#icon-and-data-exports-icondump) settings.
 
 The default is the vanilla size, and at that size every hook returns vanilla's own values. A
 changed size applies the next time the creative inventory opens.
@@ -149,20 +149,31 @@ SamPack pack:
   are reset from the actual page layout before each frame.
 - **Sounds**, **Polytone**, **REMI**: unaffected.
 
-## Icon and data dumps (`icondump`)
+## Icon and data exports (`icondump`)
 
 Everything [InvIndexLedger](https://github.com/SampackSMP/InvIndexLedger) reads from the game,
-merged in from **SamJem: IconDump**. Client only. The commands, output folders and file formats are
-unchanged from the standalone mod.
+merged in from **SamJem: IconDump**. Client only. The output folders and file formats are unchanged
+from the standalone mod. The commands moved under `/emitweaks`:
 
 ```
-/icondump export [size] [mod <id> | modRegex <regex> | match <regex>]
-/icondump update [size] <regex>
-/icondump data [emi | chipped | tabs]
-/icondump pack
+/emitweaks export [size] [mod <id> | modRegex <regex> | match <regex>]
+/emitweaks export data [emi | chipped | tabs]
+/emitweaks export gamedata
+/emitweaks update_icons [size] <regex>
 ```
 
-### Icons (`export`, `update`)
+| SamJem: IconDump | Now |
+| --- | --- |
+| `/icondump export …` | `/emitweaks export …` (without a filter, also writes the data files) |
+| `/icondump data …` | `/emitweaks export data …` |
+| `/icondump pack` | `/emitweaks export gamedata` (only when asked for) |
+| `/icondump update …` | `/emitweaks update_icons …` |
+
+`/emitweaks export` or `/emitweaks export <size>` with no filter writes the [data files](#data-export-data)
+first, then every icon, so one command takes everything InvIndexLedger reads. A data file that
+can't be written is reported and doesn't stop the icons. With a filter, it writes only icons.
+
+### Icons (`export`, `update_icons`)
 
 Every item, fluid and EMI stack, rendered into a few PNG spritesheets plus a `meta.json` index in
 `<minecraft>/icon-sheets-x<size>/`. It does the job of
@@ -180,18 +191,18 @@ Every item, fluid and EMI stack, rendered into a few PNG spritesheets plus a `me
   size make no difference.
 
 `export` writes a fresh folder (size defaults to 32), replacing whatever was there. `mod` and
-`modRegex` narrow it by namespace, `match` by stack id. `update` redraws only the stacks whose id
+`modRegex` narrow it by namespace, `match` by stack id. `update_icons` redraws only the stacks whose id
 matches `<regex>`, in place in an existing export: a stack it has is redrawn over its own tile, a
 new matching stack is appended, and one that no longer exists is dropped from `meta.json`. Regexes
 are Java regexes found anywhere in the id; anchor with `^`/`$` for a whole match.
 
 ```
-/icondump export match item:minecraft:.*_log   # a standalone dump of just these
-/icondump update ^item:chipped:                # redraw just these inside the full dump
+/emitweaks export match item:minecraft:.*_log   # a standalone dump of just these
+/emitweaks update_icons ^item:chipped:          # redraw just these inside the full dump
 ```
 
 Esc on the progress screen cancels. A cancelled `export` leaves no `meta.json`, which readers take
-to mean "incomplete". A cancelled `update` leaves the export as it was. `meta.json` is always
+to mean "incomplete". A cancelled `update_icons` leaves the export as it was. `meta.json` is always
 written last and replaced by a rename:
 
 ```jsonc
@@ -214,9 +225,10 @@ written last and replaced by a rename:
 Without EMI, the stacks come from the creative tabs as their mods built them (`PristineTabs`) and
 the source fluids, keyed in EMI's id shape.
 
-### Data (`data`)
+### Data (`export data`)
 
-Writes into `<minecraft>/icondump/`, all three files or the one named. Run it in singleplayer: the
+Writes into `<minecraft>/icondump/`, all three files or the one named. A bare `/emitweaks export`
+writes all three too. Run it in singleplayer: the
 Chipped recipes come from the integrated server. Each file is written through a temp file and a
 rename, and a part that cannot run is reported and skipped without stopping the others.
 
@@ -234,10 +246,11 @@ rename, and a part that cannot run is reported and skipped without stopping the 
 - **`creative_tabs.json`**: a flat array of every registered creative tab id, in NeoForge's own
   order rather than the pack's `tab_order`, without the pack's custom tabs.
 
-### Pack dump (`pack`)
+### Game data (`export gamedata`)
 
-Writes `<minecraft>/icondump/pack/<section>.json`, each `{"format": 1, "data": ...}`, then
-`manifest.json` with every section's count and every entry that failed. Singleplayer only.
+A dump of the whole pack, for auditing it from outside the game. Nothing else runs it. Writes
+`<minecraft>/icondump/pack/<section>.json`, each `{"format": 1, "data": ...}`, then `manifest.json`
+with every section's count and every entry that failed. Singleplayer only.
 
 | Section | |
 |---|---|

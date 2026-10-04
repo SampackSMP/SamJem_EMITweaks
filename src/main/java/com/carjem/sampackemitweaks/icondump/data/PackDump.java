@@ -54,7 +54,7 @@ import java.util.function.Function;
 
 /**
  * <pre>
- * /icondump pack
+ * /emitweaks export gamedata
  * </pre>
  *
  * A snapshot of everything the pack registers, for auditing it from outside the game: content
@@ -71,7 +71,7 @@ import java.util.function.Function;
  * that fails outright still leaves the rest on disk; manifest.json, written last, holds every
  * section's count and every entry that failed.
  */
-final class PackDump {
+public final class PackDump {
     static final String DIRECTORY = "pack";
     static final int FORMAT = 1;
 
@@ -106,12 +106,12 @@ final class PackDump {
         this.registries = server.registryAccess();
     }
 
-    static int run(CommandContext<CommandSourceStack> context) {
+    public static int run(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         Minecraft mc = Minecraft.getInstance();
         MinecraftServer server = mc.getSingleplayerServer();
         if (server == null) {
-            source.sendFailure(Component.literal("/icondump pack reads the integrated server; run it in singleplayer"));
+            source.sendFailure(Component.literal("/emitweaks export gamedata reads the integrated server; run it in singleplayer"));
             return 0;
         }
         // the tabs' contents exist only once the client has built them; the KubeJS script made

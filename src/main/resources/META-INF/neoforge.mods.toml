@@ -36,7 +36,7 @@ SamPack EMI reload and load-time fixes:
 - EMI's index is built from the creative tabs as their mods made them, in
   registry order, not as the pack's tab rules arrange them.
 - Keeps a copy of EMI's index from before resource-pack index data is applied,
-  for /icondump data.
+  for /emitweaks export data.
 
 Also adds collapsible item groups to the creative inventory (from Inventory
 Item Groups by Bizarre Cube, MIT). Configure them with Simple Config Lib or
@@ -49,7 +49,7 @@ place of Recreative.
 The creative inventory can be made wider and taller (more item columns and
 rows, and more tabs per row) in the client config.
 
-Includes SamJem: IconDump (/icondump): renders every item, fluid and EMI
+Includes SamJem: IconDump (/emitweaks export): renders every item, fluid and EMI
 stack into a few spritesheets keyed by EMI stack id, and dumps EMI's stack
 list, item tags, chipped recipes, creative tabs and the whole pack for
 InvIndexLedger. Icon rendering based on IconExporter by rubensworks (MIT).
@@ -123,7 +123,7 @@ versionRange = "[0,)"
 ordering = "NONE"
 side = "CLIENT"
 
-# Replaced by the /icondump commands built into this mod; both would register them.
+# Replaced by the /emitweaks export commands built into this mod.
 [[dependencies.${mod_id}]]
 modId = "samjem_icondump"
 type = "incompatible"

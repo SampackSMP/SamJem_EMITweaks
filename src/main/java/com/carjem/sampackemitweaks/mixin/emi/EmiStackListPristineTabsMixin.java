@@ -21,7 +21,7 @@ import java.util.List;
  * per lambda$reload$1), then walks allTabs() again reading each tab's search-tab items. The pack's
  * custom tabs are registered, so they are in allTabs() too, and EMI would file every item they
  * repeat under them instead of under the tab that added it. EMI's index, and so
- * `/icondump data`'s emi_dump.json, would then report the pack's own output instead of the game's.
+ * `/emitweaks export data`'s emi_dump.json, would then report the pack's own output instead of the game's.
  *
  * Both allTabs() calls now return {@link PristineTabs#registryOrder()}, the registry order without
  * the custom tabs, and each tab's items come from {@link PristineTabs}, recorded during the

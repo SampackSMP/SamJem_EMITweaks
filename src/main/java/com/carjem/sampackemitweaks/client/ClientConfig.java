@@ -33,7 +33,7 @@ public final class ClientConfig {
 
         builder.translation("sampack_emitweaks.configuration.icon_export").push("icon_export");
         ICON_SIZE = builder
-                .comment("Icon size in pixels when /icondump export or update is given none.")
+                .comment("Icon size in pixels when /emitweaks export or update_icons is given none.")
                 .translation("sampack_emitweaks.configuration.default_size")
                 .defineInRange("default_size", 32, 1, 512);
         MAX_SHEET_SIZE = builder

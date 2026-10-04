@@ -12,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-/** Where /icondump data writes, and how: pretty json, through a temp file and a rename. */
+/** Where /emitweaks export data writes, and how: pretty json, through a temp file and a rename. */
 public final class DataFiles {
     public static final String DIRECTORY = "icondump";
 

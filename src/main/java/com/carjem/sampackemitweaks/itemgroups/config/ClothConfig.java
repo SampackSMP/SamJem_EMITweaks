@@ -138,7 +138,7 @@ public class ClothConfig implements Config {
                 .build());
     }
 
-    /** The /icondump settings, also in the NeoForge client config. */
+    /** The icon export settings, also in the NeoForge client config. */
     private static void addIconExportCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
         ConfigCategory export = builder.getOrCreateCategory(Component.translatable("sampack_emitweaks.configuration.icon_export"));
         export.addEntry(entryBuilder.startIntField(Component.translatable("sampack_emitweaks.configuration.default_size"),

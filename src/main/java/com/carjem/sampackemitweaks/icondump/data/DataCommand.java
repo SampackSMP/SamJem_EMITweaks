@@ -1,5 +1,6 @@
 package com.carjem.sampackemitweaks.icondump.data;
 
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.carjem.sampackemitweaks.icondump.IconDump;
 import com.carjem.sampackemitweaks.icondump.source.StackSources;
@@ -10,21 +11,20 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
-import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 import java.io.IOException;
 import java.util.List;
 
 /**
  * <pre>
- * /icondump data [emi | chipped | tabs]
- * /icondump pack
+ * /emitweaks export data [emi | chipped | tabs]
  * </pre>
  *
  * Writes what InvIndexLedger reads from the game into &lt;minecraft&gt;/icondump/, all three files
  * or just the one named: emi_dump.json (EmiDump), chipped_recipes.json (ChippedRecipes) and
  * creative_tabs.json (CreativeTabs). These replace the KubeJS /emidump script, its datapack-load
- * recipe capture, and Recreative's `/recreative dump tabs`. pack is the KubeJS /packdump: see PackDump.
+ * recipe capture, and Recreative's `/recreative dump tabs`. A bare /emitweaks export writes all
+ * three too, before its icons (see ExportCommand).
  */
 public final class DataCommand {
 
@@ -50,13 +50,18 @@ public final class DataCommand {
     private DataCommand() {
     }
 
-    public static void register(RegisterClientCommandsEvent event) {
-        var data = Commands.literal("data").executes(c -> run(c, PARTS));
+    /** {@code data [emi | chipped | tabs]}, for under /emitweaks export. */
+    public static LiteralArgumentBuilder<CommandSourceStack> dataNode() {
+        var data = Commands.literal("data").executes(DataCommand::writeAll);
         for (Named part : PARTS) {
             data.then(Commands.literal(part.name()).executes(c -> run(c, List.of(part))));
         }
-        event.getDispatcher().register(Commands.literal("icondump").then(data)
-                .then(Commands.literal("pack").executes(PackDump::run)));
+        return data;
+    }
+
+    /** Every data file; returns how many were written. */
+    public static int writeAll(CommandContext<CommandSourceStack> context) {
+        return run(context, PARTS);
     }
 
     /** EmiDump names EMI's classes, so it is only touched once EMI is known to be loaded. */

@@ -3,10 +3,13 @@ package com.carjem.sampackemitweaks.icondump.command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.carjem.sampackemitweaks.icondump.IconDump;
+import com.carjem.sampackemitweaks.icondump.data.DataCommand;
+import com.carjem.sampackemitweaks.icondump.data.PackDump;
 import com.carjem.sampackemitweaks.icondump.export.ExportJob;
 import com.carjem.sampackemitweaks.icondump.export.ExportScreen;
 import com.carjem.sampackemitweaks.icondump.source.StackSources;
@@ -17,7 +20,6 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforgespi.language.IModInfo;
 
 import java.io.IOException;
@@ -29,16 +31,20 @@ import java.util.regex.PatternSyntaxException;
 
 /**
  * <pre>
- * /icondump export [size] [mod &lt;id&gt; | modRegex &lt;regex&gt; | match &lt;regex&gt;]
- * /icondump update [size] &lt;regex&gt;
+ * /emitweaks export [size] [mod &lt;id&gt; | modRegex &lt;regex&gt; | match &lt;regex&gt;]
+ * /emitweaks export data [emi | chipped | tabs]
+ * /emitweaks export gamedata
+ * /emitweaks update_icons [size] &lt;regex&gt;
  * </pre>
  *
  * export writes a fresh icon-sheets-x&lt;size&gt;, of everything or of what the filter picks, as
- * IconExporter's export does. modRegex is matched against the namespace, match against the
+ * IconExporter's export does. Without a filter it writes the data files first (DataCommand), so
+ * one command takes everything InvIndexLedger reads. export data writes only those; export
+ * gamedata writes the pack dump (PackDump), which nothing else runs. modRegex is matched against the namespace, match against the
  * stack id meta.json keys it by (item:minecraft:oak_log, item:minecraft:potion{...}), both
  * anywhere in it: anchor with ^ and $ for a whole match.
  *
- * update redraws only the stacks whose id matches, in place in an existing export, and adds the
+ * update_icons redraws only the stacks whose id matches, in place in an existing export, and adds the
  * matching stacks it lacks; everything else in it is left as it was.
  */
 public final class ExportCommand {
@@ -49,28 +55,31 @@ public final class ExportCommand {
     private ExportCommand() {
     }
 
-    public static void register(RegisterClientCommandsEvent event) {
+    /** Adds export and update_icons to the /emitweaks root. */
+    public static void addTo(LiteralArgumentBuilder<CommandSourceStack> root) {
         ToIntFunction<CommandContext<CommandSourceStack>> sizeArgument = ExportCommand::size;
         ToIntFunction<CommandContext<CommandSourceStack>> sizeDefault = c -> defaultSize();
-        event.getDispatcher().register(Commands.literal("icondump")
-                .then(withFilters(Commands.literal("export"), sizeDefault)
-                        .then(withFilters(Commands.argument("size", IntegerArgumentType.integer(1, 512)), sizeArgument)))
-                .then(Commands.literal("update")
+        root.then(withFilters(Commands.literal("export"), sizeDefault)
+                        .then(withFilters(Commands.argument("size", IntegerArgumentType.integer(1, 512)), sizeArgument))
+                        .then(DataCommand.dataNode())
+                        .then(Commands.literal("gamedata").executes(PackDump::run)))
+                .then(Commands.literal("update_icons")
                         .then(Commands.argument("size", IntegerArgumentType.integer(1, 512))
                                 .then(Commands.argument("pattern", StringArgumentType.greedyString())
                                         .executes(c -> withPattern(c, p -> update(c, size(c), p)))))
                         .then(Commands.argument("pattern", StringArgumentType.greedyString())
-                                .executes(c -> withPattern(c, p -> update(c, defaultSize(), p))))));
+                                .executes(c -> withPattern(c, p -> update(c, defaultSize(), p)))));
     }
 
     /**
-     * The export forms that follow `export` and `export &lt;size&gt;` alike: none (everything), or one
-     * filter. size reads the size from wherever this node hangs, the argument or the config.
+     * The export forms that follow `export` and `export &lt;size&gt;` alike: none (the data files and
+     * every icon), or one filter (icons only). size reads the size from wherever this node hangs,
+     * the argument or the config.
      */
     private static <T extends ArgumentBuilder<CommandSourceStack, T>> T withFilters(
             T node, ToIntFunction<CommandContext<CommandSourceStack>> size) {
         return node
-                .executes(c -> export(c, size.applyAsInt(c), ns -> true, id -> true))
+                .executes(c -> exportAll(c, size.applyAsInt(c)))
                 .then(Commands.literal("mod")
                         .then(Commands.argument("mod", StringArgumentType.word())
                                 .suggests(MOD_IDS)
@@ -125,6 +134,12 @@ public final class ExportCommand {
             return null;
         }
         return collected;
+    }
+
+    /** The data files, then every icon; a data file that fails does not stop the icons. */
+    private static int exportAll(CommandContext<CommandSourceStack> context, int size) {
+        DataCommand.writeAll(context);
+        return export(context, size, ns -> true, id -> true);
     }
 
     private static int export(CommandContext<CommandSourceStack> context, int size, Predicate<String> wantNamespace,

@@ -139,7 +139,7 @@ public final class ExportJob {
     public static ExportJob update(Collected collected, Pattern pattern, int size, int perFrame, boolean names, Path dir)
             throws IOException {
         if (!Files.exists(dir.resolve(Meta.FILE))) {
-            throw new IOException("there is no export at " + dir + " to update; run /icondump export " + size + " first");
+            throw new IOException("there is no export at " + dir + " to update; run /emitweaks export " + size + " first");
         }
         Meta meta = Meta.read(dir);
         if (meta.size != size) {
