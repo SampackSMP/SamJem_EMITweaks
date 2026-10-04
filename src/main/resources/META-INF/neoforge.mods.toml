@@ -28,16 +28,22 @@ SamPack EMI reload and load-time fixes:
   ability instead of one per recipe.
 - EMIffect and REMI skip registry entries and stack groups that cannot match
   during EMI's reload.
+- REMI's built-in default stack groups are not loaded; the pack's own groups
+  in config/remi/stack_groups/ still are.
 - BCLib anvil recipes list hammers from the hammer tag instead of scanning
   every item.
 - EMI's index is built from the creative tabs as their mods made them, in
-  registry order, not as Recreative rewrote them.
+  registry order, not as the pack's tab rules arrange them.
 - Keeps a copy of EMI's index from before resource-pack index data is applied,
   for tools that dump it (SamJem: IconDump).
 
 Also adds collapsible item groups to the creative inventory (from Inventory
 Item Groups by Bizarre Cube, MIT). Configure them with Simple Config Lib or
 Cloth Config.
+
+Adds, hides and orders creative tabs from
+config/sampack_emitweaks/creative_tabs.json (written by InvIndexLedger), in
+place of Recreative.
 
 The creative inventory can be made wider and taller (more item columns and
 rows, and more tabs per row) in the client config.
@@ -60,6 +66,9 @@ config = "sampack_emitweaks.creative.mixins.json"
 
 [[mixins]]
 config = "sampack_emitweaks.pristine.mixins.json"
+
+[[mixins]]
+config = "sampack_emitweaks.tabs.mixins.json"
 
 [[dependencies.${mod_id}]]
 modId = "neoforge"
@@ -107,3 +116,12 @@ reason = "SamPack EMI Tweaks already includes Inventory Item Groups. Remove the 
 versionRange = "[0,)"
 ordering = "NONE"
 side = "CLIENT"
+
+# Replaced by the creative tab rules built into this mod; both would apply.
+[[dependencies.${mod_id}]]
+modId = "recreative"
+type = "incompatible"
+reason = "SamPack EMI Tweaks now applies the pack's creative tabs itself (config/sampack_emitweaks/creative_tabs.json). Remove Recreative."
+versionRange = "[0,)"
+ordering = "NONE"
+side = "BOTH"

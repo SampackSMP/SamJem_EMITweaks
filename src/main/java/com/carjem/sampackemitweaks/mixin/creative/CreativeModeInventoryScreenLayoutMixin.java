@@ -139,9 +139,8 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
 
     /**
      * NeoForge places tabs by their position on the page, but some mods read the tab's own
-     * {@code row()}/{@code column()} instead: ReCreative to draw custom tab icons, owo to pick
-     * tab textures. ReCreative also rewrites those for 5 tabs per row whenever the tab list is
-     * sorted. Set them from the page right before the tabs are drawn so both agree.
+     * {@code row()}/{@code column()} instead, such as owo to pick tab textures. Set them from the
+     * page right before the tabs are drawn so both agree.
      */
     @Inject(method = "renderBg", at = @At("HEAD"))
     private void sampack_emitweaks$syncTabPositions(CallbackInfo ci) {

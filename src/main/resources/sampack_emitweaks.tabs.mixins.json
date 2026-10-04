@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.carjem.sampackemitweaks.mixin.tabs",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "CreativeModeTabRulesMixin",
+    "CreativeModeTabsRulesMixin",
+    "CreativeModeTabRegistryRulesMixin",
+    "CreativeModeTabIconAccessor",
+    "CreativeModeTabsAccessor"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

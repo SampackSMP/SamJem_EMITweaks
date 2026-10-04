@@ -6,9 +6,10 @@ the way. Every fix is a mixin into one specific mod. If that mod isn't installed
 skipped.
 
 This mod merges and replaces **Sampack_CreativeTabFix** (`sampack_tabfix`), **EMI Reclocked**
-(`emireclocked`) and **SamJem_InventoryItemGroups** (`inventory_item_groups`). Remove those jars when
-you install this one. The mod declares `inventory_item_groups` incompatible, so a leftover copy is
-reported at startup instead of applying its mixins twice.
+(`emireclocked`) and **SamJem_InventoryItemGroups** (`inventory_item_groups`), and takes over from
+**Recreative** (`recreative`) for the pack's creative tabs. Remove those jars when you install this
+one. The mod declares `inventory_item_groups` and `recreative` incompatible, so a leftover copy is
+reported at startup instead of applying twice.
 
 It is meant to run alongside [EmiAccelerator](https://modrinth.com/mod/emiaccelerator), not to
 replace it. EmiAccelerator disk-caches EMI's item list and defers `EmiSearch.bake()`, and this mod
@@ -64,6 +65,10 @@ The log message and the `EmiStack.EMPTY` fallback don't change.
   running one per recipe.
 - **EMIffect**: per-effect scans only walk flower blocks and food items.
 - **REMI**: stack groups are indexed by item id before stacks are matched against them.
+- **REMI default stack groups**: the groups REMI ships in its own jar (`minecraft:planks`,
+  `c:dyes` and so on) are not loaded. The pack's groups, which InvIndexLedger writes to
+  `config/remi/stack_groups/`, and any group another mod or resource pack ships, still load.
+  REMI's `disabledStackGroups` list in `remi.json` no longer needs to switch the defaults off.
 - **BCLib**: anvil recipes stream the hammer tag instead of every item.
 
 The javadoc on each mixin covers the details.
@@ -85,6 +90,32 @@ The feature is client-only. Its sprites, translations and config files keep the 
 The groups use their built-in defaults unless [Simple Config Lib](https://modrinth.com/mod/simple-config-lib)
 or [Cloth Config](https://modrinth.com/mod/cloth-config) is installed. Either one makes the groups
 editable from this mod's config button in the mod list.
+
+## Creative tabs (`tabs`, `mixin/tabs`)
+
+Replaces Recreative for the pack's creative tabs. InvIndexLedger's `build` writes the rules to
+`config/sampack_emitweaks/creative_tabs.json`. The mod reads that file at startup. After a build,
+run `/sampack_emitweaks reload_tabs` in game, then reopen the creative inventory. It re-reads the file,
+rebuilds the tabs and reloads EMI. F3+T re-reads the file and rebuilds the tabs too. A tab id that
+is new since startup still needs a restart, and the command says so. The file is a json array of
+rules, in the format Recreative read:
+
+| Rule | Effect |
+| --- | --- |
+| `{"action": "custom_tab", "tabs": [id], "name": .., "icon": item id, "items": [..]}` | Adds a tab. Each item is an id, or `{"item": id, "components": patch}`, where `patch` is a data component patch as json or as a json string |
+| `{"action": "remove_tab", "tabs": [ids]}` | Hides tabs |
+| `{"action": "tab_order", "order": [ids]}` | Puts the named tabs first, in that order. The rest follow in NeoForge's order |
+
+Recreative's `modify_tab`, `#tag` entries, `.png` icons and item placement anchors are not
+supported. The ledger never writes them. Without the file, the tabs stay as the game made them.
+
+The custom tabs are registered as real creative tabs on the client only (the creative tab
+registry is not synced to clients). An id another mod already registers is skipped with a warning.
+Hidden and reordered tabs apply to the creative screen's pages, to `CreativeModeTabs.tabs()` (which
+REMI's tab sidebar reads), and to the tab the screen opens on.
+
+EMI's index and IconDump still see the game's own tabs: `PristineTabs` and `PristineEmiIndex`
+leave the custom tabs out and ignore the hiding and ordering.
 
 ## Creative inventory layout (`creative`, `mixin/creative`)
 
@@ -110,10 +141,8 @@ up with the item tabs' hotbar. Saved hotbars are padded to full rows.
 Every hook changes one constant or argument, so the vanilla methods still run along with other
 mods' hooks on them. The hooks were checked against the creative screen mixins of the mods in the
 SamPack pack:
-- **ReCreative**: it sets each tab's `row()`/`column()` for 5 tabs per row and draws custom tab
-  icons from them. Those are reset from the actual page layout before each frame. Its editor
-  button follows the panel's right edge.
-- **owo-lib**: custom tab textures still apply, since owo also reads `row()`/`column()`.
+- **owo-lib**: custom tab textures still apply. owo reads each tab's `row()`/`column()`, which
+  are reset from the actual page layout before each frame.
 - **Sounds**, **Polytone**, **REMI**: unaffected.
 
 ## Investigated, not shipped

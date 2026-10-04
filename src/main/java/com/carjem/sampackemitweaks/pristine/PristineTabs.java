@@ -1,6 +1,7 @@
 package com.carjem.sampackemitweaks.pristine;
 
 import com.carjem.sampackemitweaks.mixin.pristine.CreativeModeTabRegistryAccessor;
+import com.carjem.sampackemitweaks.tabs.CreativeTabRules;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
@@ -17,15 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * Every registered creative tab's contents as the tab itself and BuildCreativeModeTabContentsEvent
  * made them, before anything rewrites them.
  *
- * Recreative rewrites each tab at the tail of {@code CreativeModeTab.buildContents}, and reorders,
- * extends and filters {@code CreativeModeTabs.allTabs()} and NeoForge's sorted tab list. Anything
- * that reads the live tabs after that -- EMI's index, IconDump's dumps, and through them
- * InvIndexLedger -- gets the pack's own output back. This keeps the copy from just before that,
- * recorded by {@link com.carjem.sampackemitweaks.mixin.pristine.CreativeModeTabPristineMixin}
- * during the builds that already happen. Recreative's own reloadTabs() rebuilds therefore record
- * the same data every time.
+ * The pack's own creative tab rules ({@link CreativeTabRules}, written by InvIndexLedger) add tabs,
+ * hide tabs and reorder them. Anything that reads the live tabs -- EMI's index, IconDump's dumps,
+ * and through them InvIndexLedger -- would then get the pack's own output back. This keeps each
+ * tab's contents as built, recorded by
+ * {@link com.carjem.sampackemitweaks.mixin.pristine.CreativeModeTabPristineMixin} during the builds
+ * that already happen, and lists the tabs in the game's own order.
  *
- * Tabs Recreative creates at runtime are never registered, so they never appear here.
+ * The custom tabs {@link CreativeTabRules} registers are left out of everything here.
  *
  * Public API: other mods (IconDump) read this by reflection; keep the signatures stable.
  */
@@ -51,7 +51,7 @@ public final class PristineTabs {
     public static void record(CreativeModeTab tab, CreativeModeTab.ItemDisplayParameters parameters,
                               Collection<ItemStack> displayItems, Collection<ItemStack> searchItems) {
         ResourceLocation id = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab);
-        if (id == null) {
+        if (id == null || CreativeTabRules.isOwnTab(id)) {
             return;
         }
         // copied: the collections are the ones the tab keeps, and a later hook may edit them in place
@@ -74,9 +74,9 @@ public final class PristineTabs {
         return generation;
     }
 
-    /** Every registered tab, in registry order: what vanilla's allTabs() returns. */
+    /** Every registered tab but the pack's custom ones, in registry order: vanilla's allTabs() without them. */
     public static List<CreativeModeTab> registryOrder() {
-        return BuiltInRegistries.CREATIVE_MODE_TAB.stream().toList();
+        return withoutCustomTabs(BuiltInRegistries.CREATIVE_MODE_TAB.stream().toList());
     }
 
     public static List<ResourceLocation> registryOrderIds() {
@@ -85,15 +85,22 @@ public final class PristineTabs {
 
     /**
      * The tabs in the order NeoForge sorts them for the creative screen (before/after constraints
-     * resolved), read from its own list rather than getSortedCreativeModeTabs(), whose return
-     * Recreative rewrites. Excludes the hotbar, search, op and inventory tabs, as NeoForge does.
+     * resolved), read from its own list rather than getSortedCreativeModeTabs(), whose return the
+     * tab rules rewrite. Excludes the hotbar, search, op and inventory tabs, as NeoForge does, and
+     * the pack's custom tabs.
      */
     public static List<CreativeModeTab> displayOrder() {
-        return List.copyOf(CreativeModeTabRegistryAccessor.sampack_emitweaks$getSortedTabs());
+        return withoutCustomTabs(CreativeModeTabRegistryAccessor.sampack_emitweaks$getSortedTabs());
     }
 
     public static List<ResourceLocation> displayOrderIds() {
         return ids(displayOrder());
+    }
+
+    private static List<CreativeModeTab> withoutCustomTabs(List<CreativeModeTab> tabs) {
+        return tabs.stream()
+                .filter(tab -> !CreativeTabRules.isOwnTab(BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab)))
+                .toList();
     }
 
     private static List<ResourceLocation> ids(List<CreativeModeTab> tabs) {

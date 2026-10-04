@@ -16,7 +16,8 @@
     "SablePhysicsPropertyPacketMixin",
     "PuzzlesLibModelLocationsMixin",
     "EmiffectMobEffectInfoMixin",
-    "RemiStackGroupManagerMixin"
+    "RemiStackGroupManagerMixin",
+    "RemiDefaultStackGroupsMixin"
   ],
   "server": [],
   "injectors": {

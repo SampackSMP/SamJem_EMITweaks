@@ -18,7 +18,7 @@ import java.util.Set;
  *
  * buildContents ends by storing the builder's two collections into displayItems and then
  * displayItemsSearchTab. This wraps the second store, so it sees both, and it runs in place of
- * that instruction -- ahead of every TAIL injection, Recreative's postBuildContents included,
+ * that instruction -- ahead of every TAIL injection,
  * whatever order the mixins are applied in.
  */
 @Mixin(CreativeModeTab.class)

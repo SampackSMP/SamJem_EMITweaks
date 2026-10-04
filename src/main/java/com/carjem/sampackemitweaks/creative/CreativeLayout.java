@@ -31,7 +31,7 @@ public final class CreativeLayout {
     private static final int TAB_SPACING = 27;
     // The right-aligned search/inventory/hotbar/op tabs take the two rightmost tab spots.
     private static final int RIGHT_ALIGNED_TABS_WIDTH = 2 * TAB_SPACING + 26;
-    // Room left beside the panel for widgets such as ReCreative's editor button.
+    // Room left beside the panel for widgets other mods put there.
     private static final int FIT_SIDE_MARGIN = 32;
     // Room above (page buttons sit 50px over the panel) and below (bottom tabs) the panel.
     private static final int FIT_VERTICAL_MARGIN = 50;

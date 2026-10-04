@@ -16,8 +16,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * built a second time -- once from the tab's own displayItemsGenerator and once
  * from Registrate's BuildCreativeModeTabContentsEvent listener. NeoForge's
  * assertNewEntryDoesNotAlreadyExists then throws, which aborts the whole tab
- * build. That is fatal for anything that rebuilds tabs: Recreative's
- * reloadTabs(), and ComputerCraft's onServerStarted -> tryRebuildTabContents.
+ * build. That is fatal for anything that rebuilds tabs, such as
+ * ComputerCraft's onServerStarted -> tryRebuildTabContents.
  *
  * The assertion exists only to report the double-add. The collection behind it
  * is a set, so skipping the insert costs nothing: accept() runs
