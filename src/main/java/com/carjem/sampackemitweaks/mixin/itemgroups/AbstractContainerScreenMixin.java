@@ -1,7 +1,6 @@
 package com.carjem.sampackemitweaks.mixin.itemgroups;
 
 import com.carjem.sampackemitweaks.creative.CreativeGrid;
-import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -22,12 +21,18 @@ import java.util.List;
 
 /**
  * Draws the creative grid's groups: an open group's items on a highlighted slot, its header on
- * another, and a plus or minus over every header. A header's tooltip is the group's name. Only
- * the creative item grid has list positions ({@link CreativeGrid#position}), so other screens
- * are untouched.
+ * another, the group's own icon on its header if it has one, and a plus or minus over every
+ * header. A header's tooltip is the group's name. Only the creative item grid has list positions
+ * ({@link CreativeGrid#position}), so other screens are untouched.
  */
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin {
+    /**
+     * The group sprites' namespace: Inventory Item Groups' mod id, from which they come (MIT, see
+     * LICENSE-InventoryItemGroups), so resource packs made for it still apply.
+     */
+    @Unique private static final String sampack_emitweaks$SPRITES = "inventory_item_groups";
+
     @Unique private static final ResourceLocation sampack_emitweaks$ICON_SLOT = sampack_emitweaks$sprite("icon_slot");
     @Unique private static final ResourceLocation sampack_emitweaks$ITEM_SLOT = sampack_emitweaks$sprite("item_slot");
     @Unique private static final ResourceLocation sampack_emitweaks$PLUS = sampack_emitweaks$sprite("plus");
@@ -37,7 +42,7 @@ public abstract class AbstractContainerScreenMixin {
 
     @Unique
     private static ResourceLocation sampack_emitweaks$sprite(String name) {
-        return ResourceLocation.fromNamespaceAndPath(InventoryItemGroups.NAMESPACE, "container/" + name);
+        return ResourceLocation.fromNamespaceAndPath(sampack_emitweaks$SPRITES, "container/" + name);
     }
 
     @Unique
@@ -62,6 +67,15 @@ public abstract class AbstractContainerScreenMixin {
         if (CreativeGrid.isHeader(position)) {
             sampack_emitweaks$blit(graphics, CreativeGrid.isExpanded(position) ? sampack_emitweaks$MINUS : sampack_emitweaks$PLUS,
                     slot.x, slot.y, 16);
+        }
+    }
+
+    /** A header whose group has its own icon draws that instead of its first item. */
+    @WrapOperation(method = "renderSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderSlotContents(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/inventory/Slot;Ljava/lang/String;)V"))
+    private void sampack_emitweaks$renderGroupIcon(AbstractContainerScreen<?> screen, GuiGraphics graphics, ItemStack stack, Slot slot,
+                                                   String count, Operation<Void> original) {
+        if (!CreativeGrid.renderIcon(graphics, CreativeGrid.position(slot), slot.x, slot.y)) {
+            original.call(screen, graphics, stack, slot, count);
         }
     }
 

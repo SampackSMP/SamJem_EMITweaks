@@ -14,8 +14,6 @@ val loader_version_range: String by project
 val emi_version: String by project
 val remi_version: String by project
 val mixinextras_version: String by project
-val simple_config_lib_version: String by project
-val cloth_config_version: String by project
 
 version = mod_version
 group = mod_group_id
@@ -39,12 +37,6 @@ repositories {
         }
         filter {
             includeGroup("maven.modrinth")
-        }
-    }
-    maven("https://maven.shedaniel.me") {
-        name = "Shedaniel"
-        content {
-            includeGroup("me.shedaniel.cloth")
         }
     }
 }
@@ -71,14 +63,14 @@ neoForge {
 }
 
 dependencies {
-    // Compile against EMI's classes (EmiTags, EmiShapedRecipe, ...) - never bundled, EMI is
-    // an optional runtime dependency declared in neoforge.mods.toml instead. Coordinate
+    // Compile against EMI's classes (EmiTags, EmiShapedRecipe, ...) - never bundled, EMI is a
+    // client runtime dependency declared in neoforge.mods.toml instead. Coordinate
     // is Modrinth's own opaque per-file version id (see gradle.properties), not EMI's version
     // string.
     compileOnly("maven.modrinth:emi:$emi_version")
 
-    // REMI's stack groups, which the creative inventory's groups follow when it is installed.
-    // Optional at runtime like EMI: only CreativeContents.Remi touches it, behind a mod check.
+    // REMI's stack groups, which the creative inventory's groups follow. Required on the client at
+    // runtime (neoforge.mods.toml), never bundled.
     compileOnly("maven.modrinth:reliable-emi:$remi_version")
 
     // MixinExtras for @WrapOperation/@ModifyExpressionValue, used to wrap calls without overwriting
@@ -86,17 +78,11 @@ dependencies {
     // (same reason REMI's own build.gradle only needs these two configurations, no runtime jar).
     compileOnly("io.github.llamalad7:mixinextras-common:$mixinextras_version")
     annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinextras_version")
-
-    // Config screens for the inventory item groups. Both are optional at runtime: ConfigHelper
-    // only touches whichever one is installed, and falls back to the built-in defaults.
-    compileOnly("maven.modrinth:simple-config-lib:$simple_config_lib_version")
-    compileOnly("me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version") {
-        isTransitive = false
-    }
 }
 
 tasks.jar {
-    // The inventory item groups and IconDump code are MIT-licensed and must ship with their notices.
+    // The group sprites (from Inventory Item Groups) and the IconDump code are MIT-licensed and
+    // must ship with their notices.
     from("LICENSE-InventoryItemGroups")
     from("LICENSE-IconDump")
 }

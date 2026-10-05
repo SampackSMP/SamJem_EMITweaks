@@ -1,5 +1,6 @@
 package com.carjem.sampackemitweaks.creative;
 
+import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -13,7 +14,9 @@ import java.util.List;
 
 /**
  * Size of the creative inventory: item columns and rows, and everything derived from them. The
- * mixins under {@link com.carjem.sampackemitweaks.mixin.creative} apply it to the screen.
+ * mixins under {@link com.carjem.sampackemitweaks.mixin.creative} apply it to the screen. The
+ * columns are always vanilla's 9 now; only the rows are configurable, but the panel drawing and
+ * the tab layout still handle extra columns.
  *
  * <p>Extra columns and rows are inserted into the vanilla 195x136 panel, so every vanilla
  * offset left of / above the item grid stays put and everything right of / below it moves by
@@ -23,15 +26,7 @@ import java.util.List;
 public final class CreativeLayout {
     public static final int VANILLA_COLUMNS = 9;
     public static final int VANILLA_ROWS = 5;
-    public static final int MAX_COLUMNS = 32;
     public static final int MAX_ROWS = 20;
-
-    // The size the creative inventory asks for. These used to be client config options; they are
-    // kept here so the size can still be changed. With FIT_TO_SCREEN, the columns and rows shrink
-    // (never below vanilla) to what the window has room for, so the rows fill its height.
-    private static final int COLUMNS = VANILLA_COLUMNS;
-    private static final int ROWS = MAX_ROWS;
-    private static final boolean FIT_TO_SCREEN = true;
 
     private static final int SLOT_SIZE = 18;
     private static final int VANILLA_WIDTH = 195;
@@ -69,8 +64,6 @@ public final class CreativeLayout {
     // and right of the scrollbar, that the panel padding stretches.
     private static final int PAD_COLUMN_BEFORE_SCROLLBAR = 172;
     private static final int PAD_COLUMN_AFTER_SCROLLBAR = 189;
-    // Room left beside the panel for widgets other mods put there.
-    private static final int FIT_SIDE_MARGIN = 32;
     // Room above (page buttons sit 50px over the panel) and below (bottom tabs) the panel.
     private static final int FIT_VERTICAL_MARGIN = 50;
 
@@ -99,20 +92,20 @@ public final class CreativeLayout {
         active = compute();
     }
 
-    /** The layout the current window size calls for, without making it active. */
+    /**
+     * The layout the config and the current window size call for, without making it active:
+     * vanilla's 9 columns, and the configured rows, which with fit to screen shrink (never below
+     * vanilla's 5) to what the window has room for, so the rows fill its height.
+     */
     public static CreativeLayout compute() {
-        int columns = COLUMNS;
-        int rows = ROWS;
-        if (FIT_TO_SCREEN) {
+        int rows = ClientConfig.get(ClientConfig.CREATIVE_ROWS);
+        if (ClientConfig.get(ClientConfig.CREATIVE_FIT_TO_SCREEN)) {
             Window window = Minecraft.getInstance().getWindow();
-            int spareWidth = window.getGuiScaledWidth() - 2 * FIT_SIDE_MARGIN - VANILLA_WIDTH;
             int spareHeight = window.getGuiScaledHeight() - 2 * FIT_VERTICAL_MARGIN - VANILLA_HEIGHT;
-            columns = Math.min(columns, VANILLA_COLUMNS + Math.max(0, spareWidth / SLOT_SIZE));
             rows = Math.min(rows, VANILLA_ROWS + Math.max(0, spareHeight / SLOT_SIZE));
         }
-        columns = Math.clamp(columns, VANILLA_COLUMNS, MAX_COLUMNS);
         rows = Math.clamp(rows, VANILLA_ROWS, MAX_ROWS);
-        return columns == VANILLA_COLUMNS && rows == VANILLA_ROWS ? VANILLA : new CreativeLayout(columns, rows);
+        return rows == VANILLA_ROWS ? VANILLA : new CreativeLayout(VANILLA_COLUMNS, rows);
     }
 
     public boolean sameSize(CreativeLayout other) {

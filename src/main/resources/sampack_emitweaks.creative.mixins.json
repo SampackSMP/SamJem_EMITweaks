@@ -11,7 +11,8 @@
     "CreativeModeTabAccessor",
     "CreativeModeTabSearchMixin",
     "CreativeTabsScreenPageMixin",
-    "ItemPickerMenuLayoutMixin"
+    "ItemPickerMenuLayoutMixin",
+    "MinecraftSearchClearMixin"
   ],
   "server": [],
   "injectors": {

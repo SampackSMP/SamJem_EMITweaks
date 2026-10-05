@@ -29,8 +29,9 @@ public final class CreativeGrid {
      *
      * @param id   what the expanded state is kept by; the same group must keep the same id
      *             across reloads
+     * @param icon what its collapsed slot shows; null for the configured default
      */
-    public record GroupKey(Object id, Component name) {
+    public record GroupKey(Object id, Component name, @Nullable GroupIcon icon) {
     }
 
     private static final class Run {
@@ -150,6 +151,22 @@ public final class CreativeGrid {
 
     public static boolean isExpanded(int position) {
         return isHeader(position) && EXPANDED.contains(runAt[position].key.id());
+    }
+
+    /**
+     * Draws the header's icon, or the configured default, in place of its first item.
+     *
+     * @return false if that is its first item, so the slot draws it as usual
+     */
+    public static boolean renderIcon(net.minecraft.client.gui.GuiGraphics graphics, int position, int x, int y) {
+        if (!isHeader(position)) return false;
+        Run run = runAt[position];
+        GroupIcon icon = run.key.icon();
+        if (icon == null) icon = com.carjem.sampackemitweaks.client.ClientConfig.get(
+                com.carjem.sampackemitweaks.client.ClientConfig.CREATIVE_GROUP_ICON).icon();
+        if (icon.kind == GroupIcon.Kind.FIRST) return false;
+        icon.render(graphics, x, y, run.items);
+        return true;
     }
 
     /** The header's tooltip: the group's name and size. */

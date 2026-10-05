@@ -10,7 +10,11 @@
     "EmiItemStackSerializerMixin",
     "EmiStackListPristineTabsMixin",
     "EmiStackListPristineIndexMixin",
-    "EmiConfigSearchDefaultsMixin"
+    "EmiConfigSearchDefaultsMixin",
+    "EmiSearchWidgetMixin",
+    "EmiScreenManagerSearchMixin",
+    "EmiConfigScreenMixin",
+    "GameRendererSearchMixin"
   ],
   "server": [],
   "injectors": {

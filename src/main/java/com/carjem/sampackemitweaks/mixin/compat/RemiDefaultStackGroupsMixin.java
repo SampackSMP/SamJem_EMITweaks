@@ -1,5 +1,6 @@
 package com.carjem.sampackemitweaks.mixin.compat;
 
+import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.resources.ResourceLocation;
@@ -14,7 +15,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 /**
- * Drops REMI's default stack groups: the {@code assets/<ns>/stack_groups/*.json} files in REMI's own
+ * Drops REMI's default stack groups, unless the config turns this off: the {@code assets/<ns>/stack_groups/*.json} files in REMI's own
  * jar (minecraft:planks, c:dyes, ...). The pack's groups come from InvIndexLedger, which writes
  * them to config/remi/stack_groups/; REMI still loads those, and stack groups any other mod or
  * resource pack ships.
@@ -35,7 +36,9 @@ public class RemiDefaultStackGroupsMixin {
     private static Map<ResourceLocation, Resource> sampack_emitweaks$withoutRemiDefaults(
             ResourceManager manager, String path, Predicate<ResourceLocation> filter,
             Operation<Map<ResourceLocation, Resource>> original) {
-        Map<ResourceLocation, Resource> resources = new LinkedHashMap<>(original.call(manager, path, filter));
+        Map<ResourceLocation, Resource> resources = original.call(manager, path, filter);
+        if (!ClientConfig.get(ClientConfig.REMI_SKIP_BUILTIN_GROUPS)) return resources;
+        resources = new LinkedHashMap<>(resources);
         resources.values().removeIf(resource -> REMI_PACK.equals(resource.sourcePackId()));
         return resources;
     }

@@ -18,7 +18,8 @@
     "EmiffectMobEffectInfoMixin",
     "RemiStackGroupManagerMixin",
     "RemiDefaultStackGroupsMixin",
-    "RemiCreativeTabSyncMixin"
+    "RemiStackGroupIconMixin",
+    "RemiGroupStackIconMixin"
   ],
   "server": [],
   "injectors": {

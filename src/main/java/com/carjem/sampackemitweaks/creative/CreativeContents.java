@@ -1,12 +1,10 @@
 package com.carjem.sampackemitweaks.creative;
 
+import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.carjem.sampackemitweaks.creative.CreativeGrid.GroupKey;
-import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
-import com.carjem.sampackemitweaks.itemgroups.config.Config;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.ModList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,26 +21,22 @@ import java.util.Set;
  * EMI's search bar and laid out in collapsible groups by {@link CreativeGrid}.
  *
  * <ul>
- *   <li>Searching: with EMI, every item tab shows only the items EMI's panel shows for its current
- *   search: REMI's search results with REMI (which also hold the items of groups whose name
- *   matches), else EMI's. REMI searches its sidebar's tab, which
- *   {@link com.carjem.sampackemitweaks.mixin.compat.RemiCreativeTabSyncMixin} keeps on the open
- *   tab. The search tab shows EMI's index (its items; fluids and other stacks are left out), in
- *   EMI's order, filtered the same way. No tab has its own search box (see
+ *   <li>Searching: every item tab shows only the items EMI's panel shows for its current search:
+ *   REMI's search results, which also hold the items of groups whose name matches. REMI searches
+ *   its sidebar's tab, which its syncSelectedCreativeModeTab setting (on by default) keeps on the
+ *   open tab. The search tab shows EMI's index (its items; fluids and other stacks are left out),
+ *   in EMI's order, filtered the same way. No tab has its own search box (see
  *   {@link com.carjem.sampackemitweaks.mixin.creative.CreativeModeTabSearchMixin}).</li>
- *   <li>Groups: with REMI, its stack groups, exactly as it groups EMI's index. Without it (or with
- *   its stack groups turned off), the item groups config, per tab.</li>
+ *   <li>Groups: REMI's stack groups, exactly as it groups EMI's index.</li>
  * </ul>
  *
  * Each tab's items are matched to EMI's index and to their groups once per reload, so a search or
- * a group toggle is one pass over the tab.
+ * a group toggle is one pass over the tab. EMI and REMI are required on the client; their classes
+ * are still only touched from the nested classes.
  */
 public final class CreativeContents {
-    private static final boolean EMI = isLoaded("emi");
-    private static final boolean REMI = EMI && isLoaded("remi");
-
     /**
-     * A tab's items, each with its EMI index stack (null without EMI) and its group.
+     * A tab's items, each with its EMI index stack and its group.
      *
      * @param source the collection the entries were built from, to notice a tab rebuild
      */
@@ -59,18 +53,27 @@ public final class CreativeContents {
     private CreativeContents() {
     }
 
-    private static boolean isLoaded(String mod) {
-        return ModList.get() != null && ModList.get().isLoaded(mod);
+    private static boolean followsSearch() {
+        return ClientConfig.get(ClientConfig.CREATIVE_FOLLOW_SEARCH);
     }
 
-    /** True when EMI's search bar replaces the creative search box. */
-    public static boolean isEmiSearch() {
-        return EMI;
+    private static boolean grouped() {
+        return ClientConfig.get(ClientConfig.CREATIVE_GROUPS);
     }
 
     /** Puts the keyboard focus in EMI's search bar, if it is shown. */
     public static void focusEmiSearch(net.minecraft.client.gui.screens.Screen screen) {
-        if (EMI) Emi.focusSearch(screen);
+        Emi.focusSearch(screen);
+    }
+
+    /** Clears EMI's search bar, keeping what it held in the search history. */
+    public static void clearEmiSearch() {
+        com.carjem.sampackemitweaks.search.EmiSearchBar.clear();
+    }
+
+    /** One of EMI's own screens (recipes, tree, config), which the creative screen comes back from. */
+    public static boolean isEmiScreen(net.minecraft.client.gui.screens.Screen screen) {
+        return screen != null && screen.getClass().getName().startsWith("dev.emi.emi.");
     }
 
     /** What an item tab's grid shows. */
@@ -90,7 +93,7 @@ public final class CreativeContents {
 
     /** What the search tab's grid shows: EMI's index. */
     public static List<ItemStack> indexItems() {
-        if (!EMI || isEmiReloading()) return List.of();
+        if (isEmiReloading()) return List.of();
         dropOutdated();
         if (index == null) {
             index = Emi.indexEntries();
@@ -105,7 +108,7 @@ public final class CreativeContents {
      * finishes, because its loaded state is one of the {@link #sources()}.
      */
     private static boolean isEmiReloading() {
-        return EMI && !Emi.isLoaded();
+        return !Emi.isLoaded();
     }
 
     /** True if EMI's search results, EMI's index or the groups changed since {@link #markApplied()}. */
@@ -121,19 +124,19 @@ public final class CreativeContents {
     /** What the grid depends on: {@link #sources()} and EMI's search results. */
     private static Object[] state() {
         Object[] sources = sources();
-        if (!EMI) return sources;
+        if (!followsSearch()) return sources;
         Object[] search = Emi.searchState();
         Object[] state = Arrays.copyOf(sources, sources.length + search.length);
         System.arraycopy(search, 0, state, sources.length, search.length);
         return state;
     }
 
-    /** What the cached entries depend on; compared by identity. */
+    /** What the cached entries depend on; compared by identity (the booleans are the boxed constants). */
     private static Object[] sources() {
-        if (!EMI) return new Object[]{Config.get()};
+        Object[] settings = {grouped(), followsSearch()};
         Object[] sources = Emi.sources();
-        Object[] all = Arrays.copyOf(sources, sources.length + 1);
-        all[sources.length] = Config.get();
+        Object[] all = Arrays.copyOf(sources, sources.length + settings.length);
+        System.arraycopy(settings, 0, all, sources.length, settings.length);
         return all;
     }
 
@@ -143,21 +146,19 @@ public final class CreativeContents {
             built = now;
             TABS.clear();
             index = null;
-            if (REMI) Remi.clear();
+            Remi.clear();
         }
     }
 
     private static Entries tabEntries(CreativeModeTab tab, Collection<ItemStack> displayItems) {
         List<ItemStack> items = new ArrayList<>(displayItems);
-        Object[] stacks = EMI ? Emi.indexed(items) : null;
-        GroupKey[] groups = REMI && Remi.isEnabled()
-                ? Remi.groups(stacks)
-                : InventoryItemGroups.groupsFor(InventoryItemGroups.getTabId(tab), items);
+        Object[] stacks = Emi.indexed(items);
+        GroupKey[] groups = grouped() && Remi.isEnabled() ? Remi.groups(stacks) : new GroupKey[items.size()];
         return new Entries(displayItems, items, stacks, groups);
     }
 
     private static List<ItemStack> show(Entries entries, CreativeModeTab tab) {
-        if (EMI && Emi.isSearching()) {
+        if (followsSearch() && Emi.isSearching()) {
             entries = Emi.filter(entries, tab);
         }
         return CreativeGrid.layout(entries.items(), entries.groups());
@@ -181,12 +182,12 @@ public final class CreativeContents {
         return named;
     }
 
-    /** Kept apart so EMI's classes are only loaded when EMI is installed. */
+    /** EMI's side. */
     private static final class Emi {
         /** EMI's index, whether EMI (and so REMI) has finished loading, and REMI's groups. */
         static Object[] sources() {
             return new Object[]{dev.emi.emi.registry.EmiStackList.stacks, dev.emi.emi.registry.EmiStackList.filteredStacks,
-                    dev.emi.emi.runtime.EmiReloadManager.isLoaded(), REMI ? Remi.generation() : null};
+                    dev.emi.emi.runtime.EmiReloadManager.isLoaded(), Remi.generation()};
         }
 
         // The last search results seen, and the items they were searched from. Results only count
@@ -223,11 +224,11 @@ public final class CreativeContents {
         }
 
         private static List<? extends dev.emi.emi.api.stack.EmiIngredient> searchResults() {
-            return REMI ? Remi.searchResults() : dev.emi.emi.search.EmiSearch.stacks;
+            return Remi.searchResults();
         }
 
         private static Object searchSource() {
-            return REMI ? Remi.searchSource() : dev.emi.emi.screen.EmiScreenManager.getSearchSource();
+            return Remi.searchSource();
         }
 
         private static void observeResults() {
@@ -249,8 +250,7 @@ public final class CreativeContents {
         private static Set<dev.emi.emi.api.stack.EmiStack> resultsFor(CreativeModeTab tab) {
             observeResults();
             Object source = searchSource();
-            boolean covers = REMI ? Remi.searchCovers(tab)
-                    : source == dev.emi.emi.registry.EmiStackList.filteredStacks || source == dev.emi.emi.registry.EmiStackList.stacks;
+            boolean covers = Remi.searchCovers(tab);
             if (!covers || lastResultsSource != source) return null;
 
             if (resultSet == null) {
@@ -331,12 +331,12 @@ public final class CreativeContents {
                 stacks.add(stack);
             }
             Object[] stackArray = stacks.toArray();
-            GroupKey[] groups = REMI && Remi.isEnabled() ? Remi.groups(stackArray) : new GroupKey[items.size()];
+            GroupKey[] groups = grouped() && Remi.isEnabled() ? Remi.groups(stackArray) : new GroupKey[items.size()];
             return new Entries(null, items, stackArray, groups);
         }
     }
 
-    /** Kept apart so REMI's classes are only loaded when REMI is installed. */
+    /** REMI's side. */
     private static final class Remi {
         // One key per stack group, so the grid can tell groups apart by identity.
         private static final Map<com.evandev.remi.feature.stackgroup.data.StackGroup, GroupKey> KEYS = new IdentityHashMap<>();
@@ -410,7 +410,7 @@ public final class CreativeContents {
             Component name = groupStack != null ? groupStack.getName()
                     : group.name != null ? group.name
                     : Component.literal(group.getId().toString());
-            return new GroupKey(group.getId(), name);
+            return new GroupKey(group.getId(), name, com.carjem.sampackemitweaks.compat.RemiGroupIcons.get(group));
         }
     }
 }

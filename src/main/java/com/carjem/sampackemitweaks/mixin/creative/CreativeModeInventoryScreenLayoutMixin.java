@@ -59,7 +59,7 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
     /** The shared item container must hold the largest grid the config allows. */
     @ModifyConstant(method = "<clinit>", constant = @Constant(intValue = 45))
     private static int sampack_emitweaks$containerSize(int size) {
-        return CreativeLayout.MAX_COLUMNS * CreativeLayout.MAX_ROWS;
+        return CreativeLayout.VANILLA_COLUMNS * CreativeLayout.MAX_ROWS;
     }
 
     @Inject(method = "<init>", at = @At("RETURN"))

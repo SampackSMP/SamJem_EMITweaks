@@ -12,6 +12,10 @@ Remove those jars when you install this one. The mod declares `inventory_item_gr
 `samjem_icondump` and `recreative` incompatible, so a leftover copy is reported at startup instead
 of applying twice.
 
+On the client it requires [EMI](https://modrinth.com/mod/emi) and
+[REMI](https://modrinth.com/mod/reliable-emi): the creative inventory searches with EMI and groups
+with REMI, and every setting is in EMI's config screen. A dedicated server runs without either.
+
 It is meant to run alongside [EmiAccelerator](https://modrinth.com/mod/emiaccelerator), not to
 replace it. EmiAccelerator disk-caches EMI's item list and defers `EmiSearch.bake()`, and this mod
 doesn't duplicate either of those.
@@ -75,30 +79,111 @@ These are only defaults: an `emi.css` that already sets them keeps its values.
 - **EMIffect**: per-effect scans only walk flower blocks and food items.
 - **REMI**: stack groups are indexed by item id before stacks are matched against them.
 - **REMI default stack groups**: the groups REMI ships in its own jar (`minecraft:planks`,
-  `c:dyes` and so on) are not loaded. The pack's groups, which InvIndexLedger writes to
+  `c:dyes` and so on) are not loaded (configurable). The pack's groups, which InvIndexLedger writes to
   `config/remi/stack_groups/`, and any group another mod or resource pack ships, still load.
   REMI's `disabledStackGroups` list in `remi.json` no longer needs to switch the defaults off.
 - **BCLib**: anvil recipes stream the hammer tag instead of every item.
 
 The javadoc on each mixin covers the details.
 
-## Inventory item groups (`itemgroups`, `mixin/itemgroups`)
+## Creative inventory groups (`creative`, `mixin/itemgroups`)
 
-Collapsible item groups in the creative inventory, in the style of Bedrock Edition. Click the plus
-icon on a group to expand it and the minus icon to collapse it. This is SamPack's fork of
-[Inventory Item Groups](https://modrinth.com/mod/inventory-item-groups) by Bizarre Cube, cut down to
-NeoForge 1.21.1. It keeps the fork's performance work: per-tab caching of group matching, and index
-lookup tables instead of per-slot linear scans. The code is MIT-licensed. Its notice is in
-`LICENSE-InventoryItemGroups` and ships inside the jar.
+Collapsible groups in the creative inventory, in the style of Bedrock Edition: REMI's stack groups,
+laid out the way REMI lays out EMI's index. Click the plus icon on a group to expand it and the
+minus icon to collapse it. A group stays open across tabs, searches and screens for the session.
+The groups can be turned off in the [config](#config-screen).
 
-The feature is client-only. Its sprites, translations and config files keep the original
-`inventory_item_groups` namespace, so these carry over unchanged:
-- existing `config/inventory_item_groups.json` and `config/inventory_item_groups_scl` files
-- resource-pack group names (`group_name.inventory_item_groups.<name>`)
+This replaces SamPack's fork of [Inventory Item Groups](https://modrinth.com/mod/inventory-item-groups)
+by Bizarre Cube, which this mod used to carry as a second grouping system for when REMI wasn't
+installed. REMI is now required, so its config, its Simple Config Lib / Cloth Config screens and
+its `config/inventory_item_groups*` files are no longer used. Its sprites (the plus, minus and slot
+highlights) are still drawn, under the `inventory_item_groups` namespace so resource packs made for
+it still apply; their MIT notice is in `LICENSE-InventoryItemGroups` and ships inside the jar.
 
-The groups use their built-in defaults unless [Simple Config Lib](https://modrinth.com/mod/simple-config-lib)
-or [Cloth Config](https://modrinth.com/mod/cloth-config) is installed. Either one makes the groups
-editable from this mod's config button in the mod list.
+### Group icons
+
+A collapsed group, in the creative inventory or in REMI's EMI panels, can show an icon other than
+its items. The `icon` key of a REMI stack group json (any type: `remi:group`, `remi:tag`, ...)
+takes:
+
+| `icon` | Shows |
+| --- | --- |
+| `"first"` | the group's first item |
+| `"stacked"` | its first three items, fanned out the way REMI draws groups |
+| an item id, e.g. `"minecraft:oak_log"` (or `"item:minecraft:oak_log"`) | that item |
+| a texture path ending in `.png`, e.g. `"sampack:textures/gui/groups/logs.png"` | that texture over the whole slot (any square size; resource packs can supply it) |
+
+Without one, each place uses its configured default: the first item in the creative inventory and
+the stacked three in REMI, unless changed in the config. An unknown item or a malformed value is
+logged and ignored. REMI ignores the key itself, so stack group files with it still load without
+this mod. REMI groups already take a display name from their `name` key.
+
+```json
+{"type": "remi:tag", "id": "chipped:acacia_log", "tag": "chipped:acacia_log", "icon": "minecraft:acacia_log"}
+```
+
+## EMI search bar (`search`, `mixin/emi`)
+
+Each of these can be turned off in [EMI's config screen](#config-screen); all are on by default.
+- **Clear on tab switch**: switching the creative inventory to another tab clears the search.
+- **Clear on close**: leaving any inventory screen (creative, survival, a chest, any container)
+  clears the search. Going to one of EMI's own screens (a recipe, the recipe tree) and back doesn't
+  count, nor does the same kind of screen opening in its place (the creative screen reopening
+  itself at a new size) or a switch between the survival and creative inventories.
+- **Clear button**: an x near the right end of the search bar clears it while it has text.
+- **Search history**: EMI already adds a search to its history when the bar loses focus with text
+  that isn't already the newest entry, and the up and down arrows step through it. That history is
+  now kept across restarts (`config/sampack_emitweaks/search_history.json`, newest first, 20
+  entries by default). An arrow at the bar's right end opens it as a list (8 rows by default,
+  scrollable). Left-click an entry to search it again, right-click to forget it; up, down and Enter
+  pick one from the keyboard, and Escape or a click elsewhere closes the list. Switches at its foot
+  turn clearing on tab switch, clearing on close and the clear button on and off without closing
+  it. While the list is open it takes every click, release, scroll and those keys over it, a click
+  outside it only closes it (except on the search bar, which it still focuses), and the screen
+  under it is drawn as if the mouse were nowhere, so nothing under it highlights or shows a
+  tooltip. It can
+  optionally be narrowed to the entries containing what is typed. A search cleared by any of the
+  above still goes into the history first.
+
+The bar's text stops short of the buttons. A press the list takes has its release taken too, so
+nothing lands on the screen once the list closes. EMI routes raw mouse and key input to its own widgets
+before the screen sees it; the buttons and the list sit at the front of that
+(`EmiScreenManagerSearchMixin`), and `GameRendererSearchMixin` hides the mouse from the screen the
+way NeoForge hides it from the layers under the top screen.
+
+## Config screen
+
+Every setting of this mod, and every setting of REMI, is in EMI's own config screen, merged into
+EMI's groups by topic rather than listed per mod. REMI's search options join EMI's own General →
+Search; everything else is a subgroup at the end of EMI's General, UI or Dev group, with a button
+in EMI's jump bar drawn in the style of EMI's own icons (`assets/sampack_emitweaks/textures/gui/config.png`).
+When the jump bar runs out of room, these buttons are dropped before any of EMI's. The mod list's
+config buttons open the screen at Search Bar (this mod) and Creative Tabs (REMI). The rows search,
+collapse, count toward EMI's revert button and revert with it like EMI's own, and they are saved
+when the screen closes, each file only if something in it changed.
+
+| Where | Holds |
+| --- | --- |
+| General, after Cheat Mode | REMI's Better Cheat Mode |
+| General → Search | EMI's own search options, then REMI's search by id and prefix options |
+| General → Search Bar | clear button, clear on tab switch / on closing an inventory; REMI's search bar width, offset, padding, colors and texture |
+| General → Search History | history button, rows shown / searches kept, filtering, keeping the history, clearing it |
+| General → Tags | REMI's tag page options |
+| UI → Creative Inventory | rows, fit to screen, following EMI's search, focusing search on the search tab, collapsible groups, default group icon |
+| UI → Creative Tabs | REMI's creative tab sidebar options (tab sizes, icons, tab sync), its disabled tabs list |
+| UI → Stack Groups | REMI's stack group options, REMI's default group icon, skipping REMI's built-in groups, its disabled groups list |
+| UI → Sidebar Pages | REMI's pagination and other miscellaneous options, and a button to REMI's own screen |
+| Dev → Icon Export | the [icon export](#config) options |
+
+Values that come in pairs share one row, in the two-number widget EMI uses for its sidebar sizes
+(hover a number for its name): rows shown and searches kept, REMI's vertical and horizontal tab
+sizes, its tab icon size and tab count, its search bar offset and padding, the icon and sheet
+size; REMI's two search bar colors share a row too.
+
+This mod's settings are stored in `config/sampack_emitweaks-client.toml` (sections `search`,
+`creative`, `remi` and `icon_export`) and REMI's in its own `remi.json`. Keeping REMI's creative
+tab sidebar on the creative inventory's tab, which the grid's search relies on, is REMI's own
+"Sync Selected Creative Mode Tab" setting (on by default).
 
 ## Creative tabs (`tabs`, `mixin/tabs`)
 
@@ -129,8 +214,8 @@ EMI's index and the `/emitweaks export` dumps still see the game's own tabs: `Pr
 ## Creative inventory layout (`creative`, `mixin/creative`)
 
 The creative inventory has as many item rows as the window has room for (5 to 20), with
-vanilla's 9 columns. There is no config for it; the size is set by constants in `CreativeLayout`
-(`COLUMNS`, `ROWS`, `FIT_TO_SCREEN`), which also allow more columns. Resizing the window or
+vanilla's 9 columns. The rows (5 to 20) and fitting to the window are
+[configurable](#config-screen) and apply the next time the inventory opens. Resizing the window or
 changing the GUI scale reopens an open creative inventory at the new size, on the same tab and
 scrolled to the same items.
 
@@ -291,7 +376,7 @@ with every section's count and every entry that failed. Singleplayer only.
 
 ### Config
 
-The `icon_export` section of `config/sampack_emitweaks-client.toml`, also on the config screen.
+The `icon_export` section of `config/sampack_emitweaks-client.toml`, also in [EMI's config screen](#config-screen).
 Settings from the old `config/samjem_icondump-client.toml` are not carried over.
 
 | Option | Default | |

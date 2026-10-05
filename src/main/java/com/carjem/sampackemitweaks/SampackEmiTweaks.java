@@ -14,8 +14,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * EMI reload and general load-time patches, almost all of them mixins; see the
- * classes under {@link com.carjem.sampackemitweaks.mixin}. Also carries the
- * creative-inventory item groups under {@link com.carjem.sampackemitweaks.itemgroups}.
+ * classes under {@link com.carjem.sampackemitweaks.mixin}. Also carries the creative inventory's
+ * search, groups and layout under {@link com.carjem.sampackemitweaks.creative}.
  */
 @Mod(SampackEmiTweaks.MOD_ID)
 public class SampackEmiTweaks {

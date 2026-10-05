@@ -7,7 +7,7 @@ modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
-credits = "Inventory Item Groups by Bizarre Cube (MIT). Icon export based on IconExporter by rubensworks (MIT)."
+credits = "Group sprites from Inventory Item Groups by Bizarre Cube (MIT). Icon export based on IconExporter by rubensworks (MIT)."
 description = '''
 SamPack EMI reload and load-time fixes:
 - EMI sorts tags by their cached member lists instead of re-walking the
@@ -38,22 +38,23 @@ SamPack EMI reload and load-time fixes:
 - Keeps a copy of EMI's index from before resource-pack index data is applied,
   for /emitweaks export data.
 
-Also adds collapsible item groups to the creative inventory. With REMI, they
-are REMI's stack groups, grouped the way REMI groups EMI's index. Without it,
-they come from the item groups config (from Inventory Item Groups by Bizarre
-Cube, MIT), set with Simple Config Lib or Cloth Config.
+Also adds collapsible groups to the creative inventory: REMI's stack groups,
+grouped the way REMI groups EMI's index.
 
 Adds, hides and orders creative tabs from
 config/sampack_emitweaks/creative_tabs.json (written by InvIndexLedger), in
 place of Recreative.
 
-The creative inventory can be made wider and taller (more item columns and
-rows, and more tabs per row) in the client config.
+The creative inventory can be made taller (more item rows) and has more tabs
+per row.
 
-With EMI, EMI's search bar searches the creative inventory: every tab shows
+EMI's search bar searches the creative inventory: every tab shows
 only the items that match (and, with REMI, the items of groups whose name
 matches), and the search tab shows EMI's index. The creative search box is
-removed.
+removed. The search bar gets a clear button, a saved search history, and
+optional clearing when a tab changes or an inventory closes.
+
+Every setting, this mod's and REMI's, is in EMI's config screen.
 
 Includes SamJem: IconDump (/emitweaks export): renders every item, fluid and EMI
 stack into a few spritesheets keyed by EMI stack id, and dumps EMI's stack
@@ -96,35 +97,27 @@ versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
-# The EMI mixins target EMI's own classes directly; they are skipped when EMI
-# is absent (e.g. on a dedicated server).
+# Required on the client: the creative inventory searches with EMI and groups with REMI, and every
+# setting lives in EMI's config screen. A dedicated server runs without either.
 [[dependencies.${mod_id}]]
 modId = "emi"
-type = "optional"
+type = "required"
 versionRange = "[1.1.24,)"
 ordering = "AFTER"
 side = "CLIENT"
 
-# Config screen backends for the inventory item groups; either one works.
 [[dependencies.${mod_id}]]
-modId = "simple_config_lib"
-type = "optional"
-versionRange = "[2.1,)"
-ordering = "NONE"
+modId = "remi"
+type = "required"
+versionRange = "[4.7.1,)"
+ordering = "AFTER"
 side = "CLIENT"
 
-[[dependencies.${mod_id}]]
-modId = "cloth_config"
-type = "optional"
-versionRange = "[15,)"
-ordering = "NONE"
-side = "CLIENT"
-
-# Replaced by the inventory item groups built into this mod.
+# Replaced by REMI's stack groups in the creative inventory, which this mod lays out.
 [[dependencies.${mod_id}]]
 modId = "inventory_item_groups"
 type = "incompatible"
-reason = "SamPack EMI Tweaks already includes Inventory Item Groups. Remove the separate jar."
+reason = "SamPack EMI Tweaks groups the creative inventory with REMI's stack groups. Remove Inventory Item Groups."
 versionRange = "[0,)"
 ordering = "NONE"
 side = "CLIENT"

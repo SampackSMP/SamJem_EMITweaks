@@ -1,5 +1,6 @@
 package com.carjem.sampackemitweaks.mixin.creative;
 
+import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.carjem.sampackemitweaks.creative.CreativeContents;
 import com.carjem.sampackemitweaks.mixin.itemgroups.ItemPickerMenuAccessor;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -41,14 +42,28 @@ public abstract class CreativeModeInventoryScreenSearchMixin extends EffectRende
         super(menu, inventory, title);
     }
 
-    /** The tabs {@link CreativeContents} fills: item tabs, and with EMI the search tab. */
+    /** The tabs {@link CreativeContents} fills: item tabs and the search tab. */
     @Unique
     private static boolean sampack_emitweaks$isGridTab(CreativeModeTab tab) {
-        return tab.getType() == CreativeModeTab.Type.CATEGORY
-                || (tab.getType() == CreativeModeTab.Type.SEARCH && CreativeContents.isEmiSearch());
+        return tab.getType() == CreativeModeTab.Type.CATEGORY || tab.getType() == CreativeModeTab.Type.SEARCH;
     }
 
     @Unique private boolean sampack_emitweaks$focusSearch;
+    // The tab this screen last showed; null until init selects the first one.
+    @Unique private CreativeModeTab sampack_emitweaks$shownTab;
+
+    /**
+     * Switching to another tab clears EMI's search bar, if the config says so. Init's own
+     * selectTab, and the refills below (which reselect the same tab), don't count.
+     */
+    @Inject(method = "selectTab", at = @At("HEAD"))
+    private void sampack_emitweaks$clearSearchOnSwitch(CreativeModeTab tab, CallbackInfo ci) {
+        if (sampack_emitweaks$shownTab != null && tab != sampack_emitweaks$shownTab
+                && ClientConfig.get(ClientConfig.CLEAR_SEARCH_ON_TAB_SWITCH)) {
+            CreativeContents.clearEmiSearch();
+        }
+        sampack_emitweaks$shownTab = tab;
+    }
 
     /**
      * Opening the search tab focuses EMI's search bar, as vanilla does its own search box. EMI
@@ -56,7 +71,8 @@ public abstract class CreativeModeInventoryScreenSearchMixin extends EffectRende
      */
     @Inject(method = "selectTab", at = @At("HEAD"))
     private void sampack_emitweaks$focusSearchOnOpen(CreativeModeTab tab, CallbackInfo ci) {
-        if (tab != selectedTab && tab.getType() == CreativeModeTab.Type.SEARCH && CreativeContents.isEmiSearch()) {
+        if (tab != selectedTab && tab.getType() == CreativeModeTab.Type.SEARCH
+                && ClientConfig.get(ClientConfig.CREATIVE_FOCUS_SEARCH)) {
             sampack_emitweaks$focusSearch = true;
         }
     }
@@ -73,7 +89,7 @@ public abstract class CreativeModeInventoryScreenSearchMixin extends EffectRende
     /** Without a search bar, vanilla leaves the search tab empty; show EMI's index there. */
     @Inject(method = "selectTab", at = @At("TAIL"))
     private void sampack_emitweaks$fillSearchTab(CreativeModeTab tab, CallbackInfo ci) {
-        if (CreativeContents.isEmiSearch() && tab.getType() == CreativeModeTab.Type.SEARCH) {
+        if (tab.getType() == CreativeModeTab.Type.SEARCH) {
             menu.items.addAll(CreativeContents.indexItems());
             menu.scrollTo(0.0F);
         }
