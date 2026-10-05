@@ -1,10 +1,12 @@
 package com.carjem.sampackemitweaks.creative;
 
-import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.mojang.blaze3d.platform.Window;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
+import org.joml.Matrix4f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,14 +26,49 @@ public final class CreativeLayout {
     public static final int MAX_COLUMNS = 32;
     public static final int MAX_ROWS = 20;
 
+    // The size the creative inventory asks for. These used to be client config options; they are
+    // kept here so the size can still be changed. With FIT_TO_SCREEN, the columns and rows shrink
+    // (never below vanilla) to what the window has room for, so the rows fill its height.
+    private static final int COLUMNS = VANILLA_COLUMNS;
+    private static final int ROWS = MAX_ROWS;
+    private static final boolean FIT_TO_SCREEN = true;
+
     private static final int SLOT_SIZE = 18;
     private static final int VANILLA_WIDTH = 195;
     private static final int VANILLA_HEIGHT = 136;
     private static final int VANILLA_HOTBAR_Y = 112;
     private static final int TEXTURE_SIZE = 256;
-    private static final int TAB_SPACING = 27;
-    // The right-aligned search/inventory/hotbar/op tabs take the two rightmost tab spots.
-    private static final int RIGHT_ALIGNED_TABS_WIDTH = 2 * TAB_SPACING + 26;
+    /** Vanilla's tab side border: the black outline and 2px of bevel. */
+    public static final int TAB_BORDER = 3;
+    /**
+     * Rows of plain fill left out of each tab sprite so tabs come out about square: top tabs
+     * drop rows 6-8 (above the icon), bottom tabs row 5 (above) and rows 23-24 (below).
+     */
+    public static final int TAB_HEIGHT_CUT = 3;
+    /**
+     * How far a tab's icon moves from vanilla's spot once those rows are cut: centered between
+     * the top border and the panel (top row), and 1px below the panel (bottom row).
+     */
+    public static final int TAB_ICON_SHIFT_Y = -2;
+    private static final int TAB_SPRITE_WIDTH = 26;
+    private static final int TAB_SPRITE_HEIGHT = 32;
+    // A tab, once cut, is this long; its last 4px are under the panel.
+    private static final int TAB_LENGTH = TAB_SPRITE_HEIGHT - TAB_HEIGHT_CUT;
+    /** How far a side tab sticks out of the panel, the same as a top tab sticks up. */
+    public static final int SIDE_TAB_DEPTH = TAB_LENGTH - 4;
+    // How far the side tabs sit above the panel's bottom edge.
+    private static final int SIDE_TAB_LIFT = 4;
+    // A top and a bottom tab's icon row, once cut (vanilla: 9 and 7).
+    private static final int TOP_TAB_ICON_Y = 9 + TAB_ICON_SHIFT_Y;
+    private static final int BOTTOM_TAB_ICON_Y = 7 + TAB_ICON_SHIFT_Y;
+    // Narrowest tab: both borders around an 18px fill (1px either side of the icon).
+    private static final int MIN_TAB_WIDTH = 2 * TAB_BORDER + 18;
+    // Gap the panel is widened for, so the tabs that fit it don't have to touch (vanilla's gap).
+    private static final int TAB_GAP = 1;
+    // Plain columns of the item and search tab backgrounds, between the grid and the scrollbar
+    // and right of the scrollbar, that the panel padding stretches.
+    private static final int PAD_COLUMN_BEFORE_SCROLLBAR = 172;
+    private static final int PAD_COLUMN_AFTER_SCROLLBAR = 189;
     // Room left beside the panel for widgets other mods put there.
     private static final int FIT_SIDE_MARGIN = 32;
     // Room above (page buttons sit 50px over the panel) and below (bottom tabs) the panel.
@@ -55,17 +92,18 @@ public final class CreativeLayout {
     }
 
     /**
-     * Re-reads the config. Called once per creative screen, when its menu is built, because the
-     * slot count is fixed for the life of the menu.
+     * Re-reads the window size. Called once per creative screen, when its menu is built, because
+     * the slot count is fixed for the life of the menu.
      */
     public static void refresh() {
-        active = ClientConfig.SPEC.isLoaded() ? fromConfig() : VANILLA;
+        active = compute();
     }
 
-    private static CreativeLayout fromConfig() {
-        int columns = ClientConfig.COLUMNS.get();
-        int rows = ClientConfig.ROWS.get();
-        if (ClientConfig.FIT_TO_SCREEN.get()) {
+    /** The layout the current window size calls for, without making it active. */
+    public static CreativeLayout compute() {
+        int columns = COLUMNS;
+        int rows = ROWS;
+        if (FIT_TO_SCREEN) {
             Window window = Minecraft.getInstance().getWindow();
             int spareWidth = window.getGuiScaledWidth() - 2 * FIT_SIDE_MARGIN - VANILLA_WIDTH;
             int spareHeight = window.getGuiScaledHeight() - 2 * FIT_VERTICAL_MARGIN - VANILLA_HEIGHT;
@@ -75,6 +113,10 @@ public final class CreativeLayout {
         columns = Math.clamp(columns, VANILLA_COLUMNS, MAX_COLUMNS);
         rows = Math.clamp(rows, VANILLA_ROWS, MAX_ROWS);
         return columns == VANILLA_COLUMNS && rows == VANILLA_ROWS ? VANILLA : new CreativeLayout(columns, rows);
+    }
+
+    public boolean sameSize(CreativeLayout other) {
+        return columns == other.columns && rows == other.rows;
     }
 
     public boolean isVanilla() {
@@ -90,7 +132,31 @@ public final class CreativeLayout {
     }
 
     public int width() {
+        return gridPanelWidth() + panelPad();
+    }
+
+    // The panel's width from its columns alone.
+    private int gridPanelWidth() {
         return VANILLA_WIDTH + extraWidth();
+    }
+
+    /**
+     * Pixels the panel is widened by so the tabs that fit it side by side get {@link #TAB_GAP}
+     * between them: 4 at vanilla width (8 tabs need 199px), none once the columns leave room.
+     */
+    public int panelPad() {
+        int spots = gridPanelWidth() / MIN_TAB_WIDTH;
+        return Math.max(0, spots * MIN_TAB_WIDTH + (spots - 1) * TAB_GAP - gridPanelWidth());
+    }
+
+    /** How far the scrollbar moves right: the extra columns and the padding left of it. */
+    public int scrollbarShift() {
+        return extraWidth() + panelPad() / 2;
+    }
+
+    /** True when the panel is vanilla's 195x136, so its background is drawn as vanilla draws it. */
+    public boolean hasVanillaPanel() {
+        return isVanilla() && panelPad() == 0;
     }
 
     public int height() {
@@ -105,13 +171,125 @@ public final class CreativeLayout {
         return VANILLA_HOTBAR_Y + extraHeight();
     }
 
-    /** Regular tabs per row: as many as fit left of the two right-aligned tab spots. Vanilla: 5. */
+    /** Tab spots per row: as many equal tabs as fit side by side across the panel. 8 at vanilla width. */
+    public int tabSpots() {
+        return gridPanelWidth() / MIN_TAB_WIDTH;
+    }
+
+    /** Width of every tab: the panel shared out between the spots, at most vanilla's 26px. */
+    public int tabWidth() {
+        return Math.min(width() / tabSpots(), TAB_SPRITE_WIDTH);
+    }
+
+    /**
+     * Regular tabs per row: all the spots, since the right-aligned tabs are moved to the sides
+     * (see {@link #sideTabY}). 8 at vanilla width (vanilla: 5).
+     */
     public int tabsPerRow() {
-        return (width() - RIGHT_ALIGNED_TABS_WIDTH) / TAB_SPACING + 1;
+        return tabSpots();
+    }
+
+    /**
+     * A regular tab's x relative to the panel. A full row runs from the panel's left edge to its
+     * right edge, with the width left over shared out as gaps between the tabs.
+     */
+    public int tabX(int column) {
+        int spots = tabSpots();
+        int spare = width() - spots * tabWidth();
+        return column * tabWidth() + (spots > 1 ? column * spare / (spots - 1) : 0);
+    }
+
+    /** True for the last spot in a row, which ends at the panel's right edge. */
+    public boolean isLastTabColumn(int column) {
+        return column == tabSpots() - 1;
+    }
+
+    /**
+     * Where a side tab sits across, relative to the panel. The tabs vanilla aligns right in the
+     * top and bottom rows (search, inventory, hotbar, op) are side tabs instead: a pair at the
+     * bottom of each side, sticking out as far as a top tab sticks up.
+     */
+    public int sideTabX(boolean left) {
+        return left ? -SIDE_TAB_DEPTH : width() + SIDE_TAB_DEPTH - TAB_LENGTH;
+    }
+
+    /**
+     * Where the n-th (from the top) of a side's {@code count} tabs sits down, relative to the
+     * panel: the last one {@link #SIDE_TAB_LIFT} above the panel's bottom edge, clear of its
+     * border and the bottom tabs, the others above it with {@link #TAB_GAP} between.
+     */
+    public int sideTabY(int index, int count) {
+        int fromBottom = count - index;
+        return height() - SIDE_TAB_LIFT - fromBottom * tabWidth() - (fromBottom - 1) * TAB_GAP;
     }
 
     public int tabsPerPage() {
         return 2 * tabsPerRow();
+    }
+
+    /** Where a tab's icon starts across it: centered in the fill. */
+    private int tabIconX() {
+        int fill = tabWidth() - 2 * TAB_BORDER;
+        return TAB_BORDER + (fill - 16 + 1) / 2;
+    }
+
+    /** How far a tab's icon moves right from vanilla's spot (5px in) to center it in the fill. */
+    public int tabIconShiftX() {
+        return tabIconX() - 5;
+    }
+
+    /** A side tab's icon, relative to the tab: a top (left) or bottom (right) tab's, mirrored like the tab. */
+    public int sideTabIconX(boolean left) {
+        return left ? TOP_TAB_ICON_Y : BOTTOM_TAB_ICON_Y;
+    }
+
+    public int sideTabIconY() {
+        return tabIconX();
+    }
+
+    /** A side tab's area, relative to the panel: the part that sticks out. */
+    public boolean isOverSideTab(boolean left, int index, int count, double x, double y) {
+        int outside = left ? -SIDE_TAB_DEPTH : width();
+        int top = sideTabY(index, count);
+        return x >= outside && x < outside + SIDE_TAB_DEPTH && y >= top && y < top + tabWidth();
+    }
+
+    /**
+     * Draws a side tab: a tab sprite mirrored across its diagonal. On the left a top tab, so it
+     * opens onto the panel's lit left border with its highlight outside and on top; on the right a
+     * bottom tab, opening onto the shaded right border with its shadow outside and below.
+     */
+    public void blitSideTab(GuiGraphics graphics, ResourceLocation sprite, int x, int y, boolean left) {
+        PoseStack pose = graphics.pose();
+        pose.pushPose();
+        pose.translate(x, y, 0);
+        pose.mulPose(new Matrix4f(0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1));
+        // The mirror flips the quads' winding.
+        RenderSystem.disableCull();
+        blitTab(graphics, sprite, 0, 0, left);
+        RenderSystem.enableCull();
+        pose.popPose();
+    }
+
+    /**
+     * Draws a tab sprite at {@link #tabWidth()} wide and {@link #TAB_HEIGHT_CUT} shorter, by
+     * leaving out a middle column strip and rows of plain fill, so its borders, corners and the
+     * edge that joins the panel stay intact.
+     */
+    public void blitTab(GuiGraphics graphics, ResourceLocation sprite, int x, int y, boolean top) {
+        int width = tabWidth();
+        int left = width / 2;
+        List<Segment> xs = List.of(
+                Segment.copy(0, 0, left),
+                Segment.copy(TAB_SPRITE_WIDTH - (width - left), left, width - left));
+        List<Segment> ys = top
+                ? List.of(Segment.copy(0, 0, 6), Segment.copy(9, 6, TAB_SPRITE_HEIGHT - 9))
+                : List.of(Segment.copy(0, 0, 5), Segment.copy(6, 5, 17), Segment.copy(25, 22, TAB_SPRITE_HEIGHT - 25));
+        for (Segment sx : xs) {
+            for (Segment sy : ys) {
+                graphics.blitSprite(sprite, TAB_SPRITE_WIDTH, TAB_SPRITE_HEIGHT, sx.src, sy.src, x + sx.dst, y + sy.dst, sx.dstLength, sy.dstLength);
+            }
+        }
     }
 
     /**
@@ -122,17 +300,22 @@ public final class CreativeLayout {
      * same at every column/row, so the copies line up. The search box sits right of the
      * repeated column and moves right with the rest of the panel.
      *
+     * The {@link #panelPad()} is split between two plain columns either side of the scrollbar.
+     *
      * <p>The inventory tab has no repeating strip, so it stretches a plain column (x=190, just
      * inside the right border) and a plain row (y=130, just under the hotbar) instead, so the
      * drawn slots stay at their vanilla top-left positions along with the real ones.
      */
     public void blitBackground(GuiGraphics graphics, ResourceLocation texture, int x, int y, boolean inventoryTab) {
+        int pad = panelPad();
         List<Segment> xs = inventoryTab
-                ? stretched(190, extraWidth(), VANILLA_WIDTH)
-                : tiled(44, 26, VANILLA_COLUMNS - 1, extraWidth(), VANILLA_WIDTH);
+                ? axis(VANILLA_WIDTH, Insert.stretch(190, extraWidth() + pad))
+                : axis(VANILLA_WIDTH, Insert.tile(44, 26, VANILLA_COLUMNS - 1, extraWidth()),
+                        Insert.stretch(PAD_COLUMN_BEFORE_SCROLLBAR, pad / 2),
+                        Insert.stretch(PAD_COLUMN_AFTER_SCROLLBAR, pad - pad / 2));
         List<Segment> ys = inventoryTab
-                ? stretched(130, extraHeight(), VANILLA_HEIGHT)
-                : tiled(53, 35, VANILLA_ROWS - 1, extraHeight(), VANILLA_HEIGHT);
+                ? axis(VANILLA_HEIGHT, Insert.stretch(130, extraHeight()))
+                : axis(VANILLA_HEIGHT, Insert.tile(53, 35, VANILLA_ROWS - 1, extraHeight()));
         for (Segment sx : xs) {
             for (Segment sy : ys) {
                 graphics.blit(texture, x + sx.dst, y + sy.dst, sx.dstLength, sy.dstLength,
@@ -149,28 +332,45 @@ public final class CreativeLayout {
     }
 
     /**
-     * {@code [0, splitAt)} as-is, then {@code extra} pixels of copies of the slot strips starting
-     * at {@code stripStart} (up to {@code maxStrips} strips per copy), then the rest shifted.
+     * Extra pixels put into the panel along one axis at {@code at} (a position in the texture):
+     * copies of the slot strips starting at {@code stripStart} (up to {@code maxStrips} per copy),
+     * or, with no strip, the single pixel at {@code at} stretched.
      */
-    private static List<Segment> tiled(int splitAt, int stripStart, int maxStrips, int extra, int total) {
-        List<Segment> segments = new ArrayList<>();
-        segments.add(Segment.copy(0, 0, splitAt));
-        int dst = splitAt;
-        for (int strips = extra / SLOT_SIZE; strips > 0; ) {
-            int count = Math.min(strips, maxStrips);
-            segments.add(Segment.copy(stripStart, dst, count * SLOT_SIZE));
-            dst += count * SLOT_SIZE;
-            strips -= count;
+    private record Insert(int at, int stripStart, int maxStrips, int extra) {
+        static Insert tile(int at, int stripStart, int maxStrips, int extra) {
+            return new Insert(at, stripStart, maxStrips, extra);
         }
-        segments.add(Segment.copy(splitAt, dst, total - splitAt));
-        return segments;
+
+        static Insert stretch(int at, int extra) {
+            return new Insert(at, -1, 0, extra);
+        }
     }
 
-    /** {@code [0, at)} as-is, the single pixel at {@code at} stretched by {@code extra}, then the rest shifted. */
-    private static List<Segment> stretched(int at, int extra, int total) {
-        return List.of(
-                Segment.copy(0, 0, at),
-                new Segment(at, 1, at, 1 + extra),
-                Segment.copy(at + 1, at + 1 + extra, total - at - 1));
+    /** The texture's {@code [0, total)} with the inserts (in order of {@code at}) put in, the rest shifted. */
+    private static List<Segment> axis(int total, Insert... inserts) {
+        List<Segment> segments = new ArrayList<>();
+        int src = 0;
+        int dst = 0;
+        for (Insert insert : inserts) {
+            if (insert.at > src) {
+                segments.add(Segment.copy(src, dst, insert.at - src));
+                dst += insert.at - src;
+                src = insert.at;
+            }
+            if (insert.stripStart < 0) {
+                segments.add(new Segment(insert.at, 1, dst, 1 + insert.extra));
+                dst += 1 + insert.extra;
+                src = insert.at + 1;
+            } else {
+                for (int strips = insert.extra / SLOT_SIZE; strips > 0; ) {
+                    int count = Math.min(strips, insert.maxStrips);
+                    segments.add(Segment.copy(insert.stripStart, dst, count * SLOT_SIZE));
+                    dst += count * SLOT_SIZE;
+                    strips -= count;
+                }
+            }
+        }
+        segments.add(Segment.copy(src, dst, total - src));
+        return segments;
     }
 }

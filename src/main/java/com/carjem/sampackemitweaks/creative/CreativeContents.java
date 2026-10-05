@@ -68,8 +68,17 @@ public final class CreativeContents {
         return EMI;
     }
 
+    /** Puts the keyboard focus in EMI's search bar, if it is shown. */
+    public static void focusEmiSearch(net.minecraft.client.gui.screens.Screen screen) {
+        if (EMI) Emi.focusSearch(screen);
+    }
+
     /** What an item tab's grid shows. */
     public static List<ItemStack> tabItems(CreativeModeTab tab, Collection<ItemStack> displayItems) {
+        if (isEmiReloading()) {
+            CreativeGrid.clear();
+            return new ArrayList<>(displayItems);
+        }
         dropOutdated();
         Entries entries = TABS.get(tab);
         if (entries == null || entries.source() != displayItems) {
@@ -81,12 +90,22 @@ public final class CreativeContents {
 
     /** What the search tab's grid shows: EMI's index. */
     public static List<ItemStack> indexItems() {
-        if (!EMI) return List.of();
+        if (!EMI || isEmiReloading()) return List.of();
         dropOutdated();
         if (index == null) {
             index = Emi.indexEntries();
         }
         return show(index, net.minecraft.world.item.CreativeModeTabs.searchTab());
+    }
+
+    /**
+     * EMI rebuilds its index, search and REMI's groups on its reload thread, and reading them
+     * meanwhile can crash (its index map is rehashed under the reader). Until it is done, item
+     * tabs show their plain contents and the search tab is empty; the grid is refilled when EMI
+     * finishes, because its loaded state is one of the {@link #sources()}.
+     */
+    private static boolean isEmiReloading() {
+        return EMI && !Emi.isLoaded();
     }
 
     /** True if EMI's search results, EMI's index or the groups changed since {@link #markApplied()}. */
@@ -176,6 +195,17 @@ public final class CreativeContents {
         private static Object lastResults;
         private static Object lastResultsSource;
         private static Set<dev.emi.emi.api.stack.EmiStack> resultSet;
+
+        static boolean isLoaded() {
+            return dev.emi.emi.runtime.EmiReloadManager.isLoaded();
+        }
+
+        static void focusSearch(net.minecraft.client.gui.screens.Screen screen) {
+            dev.emi.emi.screen.widget.EmiSearchWidget search = dev.emi.emi.screen.EmiScreenManager.search;
+            if (search == null || !search.isVisible()) return;
+            screen.setFocused(search);
+            search.setFocused(true);
+        }
 
         static boolean isSearching() {
             return !dev.emi.emi.api.EmiApi.getSearchText().isEmpty();

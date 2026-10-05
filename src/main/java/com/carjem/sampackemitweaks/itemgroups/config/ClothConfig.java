@@ -1,6 +1,5 @@
 package com.carjem.sampackemitweaks.itemgroups.config;
 
-import com.carjem.sampackemitweaks.creative.CreativeLayout;
 import com.carjem.sampackemitweaks.client.ClientConfig;
 import com.carjem.sampackemitweaks.itemgroups.InventoryItemGroups;
 import com.google.gson.Gson;
@@ -109,33 +108,9 @@ public class ClothConfig implements Config {
         InventoryItemGroups.getTabIds().forEach(id -> ids.add(entryBuilder.startTextDescription(id).build()));
         groups.addEntry(ids.build());
 
-        addCreativeLayoutCategory(builder, entryBuilder);
         addIconExportCategory(builder, entryBuilder);
 
         return builder.build();
-    }
-
-    /** The creative inventory size lives in the NeoForge client config; this just edits it. */
-    private static void addCreativeLayoutCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
-        ConfigCategory layout = builder.getOrCreateCategory(Component.translatable("sampack_emitweaks.configuration.creative_inventory"));
-        layout.addEntry(entryBuilder.startIntSlider(Component.translatable("sampack_emitweaks.configuration.columns"),
-                        ClientConfig.COLUMNS.get(), CreativeLayout.VANILLA_COLUMNS, CreativeLayout.MAX_COLUMNS)
-                .setDefaultValue(CreativeLayout.VANILLA_COLUMNS)
-                .setTooltip(Component.translatable("sampack_emitweaks.configuration.columns.tooltip"))
-                .setSaveConsumer(ClientConfig.COLUMNS::set)
-                .build());
-        layout.addEntry(entryBuilder.startIntSlider(Component.translatable("sampack_emitweaks.configuration.rows"),
-                        ClientConfig.ROWS.get(), CreativeLayout.VANILLA_ROWS, CreativeLayout.MAX_ROWS)
-                .setDefaultValue(CreativeLayout.VANILLA_ROWS)
-                .setTooltip(Component.translatable("sampack_emitweaks.configuration.rows.tooltip"))
-                .setSaveConsumer(ClientConfig.ROWS::set)
-                .build());
-        layout.addEntry(entryBuilder.startBooleanToggle(Component.translatable("sampack_emitweaks.configuration.fit_to_screen"),
-                        ClientConfig.FIT_TO_SCREEN.get())
-                .setDefaultValue(true)
-                .setTooltip(Component.translatable("sampack_emitweaks.configuration.fit_to_screen.tooltip"))
-                .setSaveConsumer(ClientConfig.FIT_TO_SCREEN::set)
-                .build());
     }
 
     /** The icon export settings, also in the NeoForge client config. */

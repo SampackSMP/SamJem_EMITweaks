@@ -128,30 +128,43 @@ EMI's index and the `/emitweaks export` dumps still see the game's own tabs: `Pr
 
 ## Creative inventory layout (`creative`, `mixin/creative`)
 
-The creative inventory can have more item columns and rows than vanilla's 9x5. A wider inventory
-also fits more tabs per row, and so more tabs per page. Set the size in
-`config/sampack_emitweaks-client.toml`, or in the "Creative Inventory Layout" tab of the config
-screen when Cloth Config is installed:
+The creative inventory has as many item rows as the window has room for (5 to 20), with
+vanilla's 9 columns. There is no config for it; the size is set by constants in `CreativeLayout`
+(`COLUMNS`, `ROWS`, `FIT_TO_SCREEN`), which also allow more columns. Resizing the window or
+changing the GUI scale reopens an open creative inventory at the new size, on the same tab and
+scrolled to the same items.
 
-| Option | Default | Range |
-| --- | --- | --- |
-| `columns` | 9 | 9 to 32 |
-| `rows` | 5 | 5 to 20 |
-| `fit_to_screen` | true | Shrinks the size, never below vanilla, when the window is too small for it |
+All tabs are the same size and closer to square: 24px wide, showing 23px out from the panel (21px
+for the bottom row), instead of 26x28, with their full vanilla borders and 1px between icon and
+border. Tab sprites are drawn with a strip of their plain middle fill left out, so borders and
+corners stay intact.
+- The top and bottom rows hold only item tabs: as many as fit, 8 per row at vanilla width
+  (vanilla: 5). A full row runs from the panel's left edge to its right edge, the width left
+  over shared out as gaps between tabs, with vanilla's corner sprites at both ends. When the tabs
+  would have to touch, the panel is widened just enough for 1px gaps (4px at vanilla width), by
+  stretching plain columns either side of the scrollbar (the inventory tab's right margin).
+- The search, inventory, saved hotbars and op tabs, which vanilla aligns right in those rows, are
+  side tabs: search above inventory near the bottom of the left side, saved hotbars above op near
+  the bottom of the right side, 4px above the panel's bottom edge (a side's only tab goes in the
+  lower spot). A side tab is a tab mirrored across its diagonal: a top tab on the left, opening
+  onto the lit left border, and a bottom tab on the right, opening onto the shaded right border.
+  With EMI, `CreativeEmiPlugin` reports the screen's bounds as reaching out to the side tabs, so
+  EMI's side panels, and REMI's creative tab bars (laid out from EMI's panels), stay clear of them.
 
-These are the `creative_inventory` section. The same file's `icon_export` section holds the
-[icon export](#icon-and-data-exports-icondump) settings.
+Selecting a tab on another page (from REMI's sidebar, for example) turns to its page.
 
-The default is the vanilla size, and at that size every hook returns vanilla's own values. A
-changed size applies the next time the creative inventory opens.
+Going back from EMI's recipe screen keeps the creative inventory's tab, page and scroll position.
+Refilling the grid (when EMI's search results come back unchanged, for example) keeps the scroll
+position when the items are the same. Opening the search tab focuses EMI's search bar.
 
 The extra columns and rows are inserted into the vanilla panel by repeating a slot column and a
 slot row of the tab's own background texture. Resource packs and modded tab backgrounds still
 apply. The inventory tab keeps its vanilla contents in the bottom-left corner, so its hotbar lines
 up with the item tabs' hotbar. Saved hotbars are padded to full rows.
 
-Every hook changes one constant or argument, so the vanilla methods still run along with other
-mods' hooks on them. The hooks were checked against the creative screen mixins of the mods in the
+Most hooks change one constant or argument, so the vanilla methods still run along with other
+mods' hooks on them. The side tabs are the exception: for the tabs vanilla aligns right, the
+drawing, click and hover methods are skipped and done by this mod. The hooks were checked against the creative screen mixins of the mods in the
 SamPack pack:
 - **owo-lib**: custom tab textures still apply. owo reads each tab's `row()`/`column()`, which
   are reset from the actual page layout before each frame.

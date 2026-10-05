@@ -1,6 +1,7 @@
 package com.carjem.sampackemitweaks.mixin.creative;
 
 import com.carjem.sampackemitweaks.creative.CreativeContents;
+import com.carjem.sampackemitweaks.mixin.itemgroups.ItemPickerMenuAccessor;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
@@ -16,7 +17,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Fills the creative grid from {@link CreativeContents}. The item tabs are filled where vanilla
@@ -27,6 +30,7 @@ import java.util.Collection;
 @Mixin(CreativeModeInventoryScreen.class)
 public abstract class CreativeModeInventoryScreenSearchMixin extends EffectRenderingInventoryScreen<CreativeModeInventoryScreen.ItemPickerMenu> {
     @Shadow private static CreativeModeTab selectedTab;
+    @Shadow private float scrollOffs;
 
     @Shadow
     private void selectTab(CreativeModeTab tab) {
@@ -44,6 +48,28 @@ public abstract class CreativeModeInventoryScreenSearchMixin extends EffectRende
                 || (tab.getType() == CreativeModeTab.Type.SEARCH && CreativeContents.isEmiSearch());
     }
 
+    @Unique private boolean sampack_emitweaks$focusSearch;
+
+    /**
+     * Opening the search tab focuses EMI's search bar, as vanilla does its own search box. EMI
+     * sets up its widgets after the screen's init, which selects the tab, so wait a tick.
+     */
+    @Inject(method = "selectTab", at = @At("HEAD"))
+    private void sampack_emitweaks$focusSearchOnOpen(CreativeModeTab tab, CallbackInfo ci) {
+        if (tab != selectedTab && tab.getType() == CreativeModeTab.Type.SEARCH && CreativeContents.isEmiSearch()) {
+            sampack_emitweaks$focusSearch = true;
+        }
+    }
+
+    @Inject(method = "containerTick", at = @At("TAIL"))
+    private void sampack_emitweaks$focusSearch(CallbackInfo ci) {
+        if (!sampack_emitweaks$focusSearch) return;
+        sampack_emitweaks$focusSearch = false;
+        if (selectedTab.getType() == CreativeModeTab.Type.SEARCH) {
+            CreativeContents.focusEmiSearch(this);
+        }
+    }
+
     /** Without a search bar, vanilla leaves the search tab empty; show EMI's index there. */
     @Inject(method = "selectTab", at = @At("TAIL"))
     private void sampack_emitweaks$fillSearchTab(CreativeModeTab tab, CallbackInfo ci) {
@@ -58,7 +84,7 @@ public abstract class CreativeModeInventoryScreenSearchMixin extends EffectRende
     @Inject(method = "containerTick", at = @At("TAIL"))
     private void sampack_emitweaks$followEmiSearch(CallbackInfo ci) {
         if (sampack_emitweaks$isGridTab(selectedTab) && CreativeContents.isStale()) {
-            selectTab(selectedTab);
+            sampack_emitweaks$refill();
         }
     }
 
@@ -70,9 +96,35 @@ public abstract class CreativeModeInventoryScreenSearchMixin extends EffectRende
     @Inject(method = "refreshCurrentTabContents", at = @At("HEAD"), cancellable = true)
     private void sampack_emitweaks$refillGrid(Collection<ItemStack> items, CallbackInfo ci) {
         if (sampack_emitweaks$isGridTab(selectedTab)) {
-            selectTab(selectedTab);
+            sampack_emitweaks$refill();
             ci.cancel();
         }
+    }
+
+    /**
+     * Refills the open tab. Reselecting it scrolls to the top, so if it shows the same items as
+     * before, scroll back to where it was. EMI's results are often rebuilt unchanged, e.g. when
+     * its recipe screen goes back to this one.
+     */
+    @Unique
+    private void sampack_emitweaks$refill() {
+        List<ItemStack> before = new ArrayList<>(menu.items);
+        float scroll = scrollOffs;
+        selectTab(selectedTab);
+        if (sampack_emitweaks$sameItems(before, menu.items)) {
+            ItemPickerMenuAccessor accessor = (ItemPickerMenuAccessor) menu;
+            scrollOffs = accessor.sampack_emitweaks$getScrollForRowIndex(accessor.sampack_emitweaks$getRowIndexForScroll(scroll));
+            menu.scrollTo(scrollOffs);
+        }
+    }
+
+    @Unique
+    private static boolean sampack_emitweaks$sameItems(List<ItemStack> a, List<ItemStack> b) {
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) {
+            if (a.get(i) != b.get(i) && !ItemStack.isSameItemSameComponents(a.get(i), b.get(i))) return false;
+        }
+        return true;
     }
 
     /**
