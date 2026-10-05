@@ -9,7 +9,8 @@
     "EmiRecipeRemainderMixin",
     "EmiItemStackSerializerMixin",
     "EmiStackListPristineTabsMixin",
-    "EmiStackListPristineIndexMixin"
+    "EmiStackListPristineIndexMixin",
+    "EmiConfigSearchDefaultsMixin"
   ],
   "server": [],
   "injectors": {

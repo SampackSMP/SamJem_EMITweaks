@@ -47,6 +47,14 @@ EMI data file throws there, and EMI's generic `catch (Exception)` discards the e
 `EmiItemStackSerializerMixin` throws the same exception type without filling in its stack trace.
 The log message and the `EmiStack.EMPTY` fallback don't change.
 
+### Search defaults
+
+EMI's plain search matches substrings, and by default it also searches tooltips, so "light" finds
+wooden buttons. If mod names are searched too, "light" also finds all of Twilight Forest.
+`EmiConfigSearchDefaultsMixin` turns both defaults (`search-tooltip-by-default`,
+`search-mod-name-by-default`) off. Tooltips can still be searched with `$` and mod names with `@`.
+These are only defaults: an `emi.css` that already sets them keeps its values.
+
 ## Compatibility and load-time fixes (`mixin`, `mixin/compat`)
 
 - **Duplicate creative-tab entries**: NeoForge's `assertNewEntryDoesNotAlreadyExists` no longer
