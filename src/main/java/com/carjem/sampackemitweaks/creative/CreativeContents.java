@@ -27,7 +27,8 @@ import java.util.Set;
  *   open tab. The search tab shows EMI's index (its items; fluids and other stacks are left out),
  *   in EMI's order, filtered the same way. No tab has its own search box (see
  *   {@link com.carjem.sampackemitweaks.mixin.creative.CreativeModeTabSearchMixin}).</li>
- *   <li>Groups: REMI's stack groups, exactly as it groups EMI's index.</li>
+ *   <li>Groups: REMI's stack groups, exactly as it groups EMI's index, subgroups inside their
+ *   groups ({@link GroupTree}).</li>
  * </ul>
  *
  * Each tab's items are matched to EMI's index and to their groups once per reload, so a search or
@@ -164,7 +165,10 @@ public final class CreativeContents {
         return CreativeGrid.layout(entries.items(), entries.groups());
     }
 
-    /** The groups the search text names, by name or id, as REMI matches them. */
+    /**
+     * The groups the search text names, by name or id, as REMI matches them, and every group inside
+     * one of them.
+     */
     private static Set<GroupKey> groupsNamed(String text, GroupKey[] groups) {
         Set<GroupKey> named = Collections.newSetFromMap(new IdentityHashMap<>());
         if (text.startsWith("%")) text = text.substring(1);
@@ -173,10 +177,23 @@ public final class CreativeContents {
 
         Set<GroupKey> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         for (GroupKey key : groups) {
-            if (key != null && seen.add(key)
-                    && (key.id().toString().toLowerCase(Locale.ROOT).contains(lower)
-                    || key.name().getString().toLowerCase(Locale.ROOT).contains(lower))) {
-                named.add(key);
+            for (GroupKey group : GroupTree.chain(key, GroupKey::parent)) {
+                if (seen.add(group)
+                        && (group.id().toString().toLowerCase(Locale.ROOT).contains(lower)
+                        || group.name().getString().toLowerCase(Locale.ROOT).contains(lower))) {
+                    named.add(group);
+                }
+            }
+        }
+        if (named.isEmpty()) return named;
+
+        // the groups under a named one: every key whose chain passes through it
+        for (GroupKey key : seen) {
+            for (GroupKey group : GroupTree.chain(key, GroupKey::parent)) {
+                if (named.contains(group)) {
+                    named.add(key);
+                    break;
+                }
             }
         }
         return named;
@@ -375,7 +392,7 @@ public final class CreativeContents {
             for (int i = 0; i < stacks.length; i++) {
                 com.evandev.remi.feature.stackgroup.data.StackGroup group = groupOf((dev.emi.emi.api.stack.EmiStack) stacks[i]);
                 if (group != null) {
-                    groups[i] = KEYS.computeIfAbsent(group, Remi::key);
+                    groups[i] = key(group);
                 }
             }
             return groups;
@@ -383,34 +400,25 @@ public final class CreativeContents {
 
         /** The stack's first enabled group, looked up the way REMI's buildGroupedStacks does. */
         private static com.evandev.remi.feature.stackgroup.data.StackGroup groupOf(dev.emi.emi.api.stack.EmiStack stack) {
-            List<com.evandev.remi.feature.stackgroup.GroupedEmiStack<dev.emi.emi.api.stack.EmiStack>> variants =
-                    com.evandev.remi.feature.stackgroup.StackGroupManager.stackToGroupedStacks.get(stack);
-            if (variants != null) {
-                for (var variant : variants) {
-                    if (variant.stackGroup.isEnabled) return variant.stackGroup;
-                }
-                return null;
-            }
-
-            List<com.evandev.remi.feature.stackgroup.GroupedEmiStack<dev.emi.emi.api.stack.EmiStack>> byId =
-                    com.evandev.remi.feature.stackgroup.StackGroupManager.getItemToGroupedStacks().get(stack.getId());
-            if (byId != null) {
-                for (var variant : byId) {
-                    if (variant.stackGroup.isEnabled
-                            && variant.realStack.isEqual(stack, dev.emi.emi.api.stack.Comparison.compareComponents())) {
-                        return variant.stackGroup;
-                    }
-                }
-            }
-            return null;
+            var grouped = com.carjem.sampackemitweaks.compat.RemiNestedLayout.grouped(stack);
+            return grouped != null ? grouped.stackGroup : null;
         }
 
+        /** The group's key, its outer group's made first; REMI's subgroups never form a cycle. */
         private static GroupKey key(com.evandev.remi.feature.stackgroup.data.StackGroup group) {
+            GroupKey key = KEYS.get(group);
+            if (key != null) return key;
+            com.evandev.remi.feature.stackgroup.data.StackGroup outer =
+                    com.carjem.sampackemitweaks.compat.RemiNestedGroups.parent(group, g -> g.isEnabled);
+            GroupKey parent = outer != null ? key(outer) : null;
+
             var groupStack = com.evandev.remi.feature.stackgroup.StackGroupManager.groupToGroupStacks.get(group);
             Component name = groupStack != null ? groupStack.getName()
                     : group.name != null ? group.name
                     : Component.literal(group.getId().toString());
-            return new GroupKey(group.getId(), name, com.carjem.sampackemitweaks.compat.RemiGroupIcons.get(group));
+            key = new GroupKey(group.getId(), name, com.carjem.sampackemitweaks.compat.RemiGroupIcons.get(group), parent);
+            KEYS.put(group, key);
+            return key;
         }
     }
 }

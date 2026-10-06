@@ -67,6 +67,8 @@ public final class CreativeTabReload {
         // null until the creative inventory has first been built; it builds from the new rules then
         CreativeModeTab.ItemDisplayParameters parameters = CreativeModeTabsAccessor.sampack_emitweaks$getCachedParameters();
         if (parameters != null) {
+            // same parameters as the last build, which ModernFix would otherwise skip
+            TabBuildMemo.forget();
             CreativeModeTabsAccessor.sampack_emitweaks$buildAllTabContents(parameters);
         }
         return pending;

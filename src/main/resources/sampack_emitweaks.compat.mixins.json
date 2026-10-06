@@ -19,7 +19,10 @@
     "RemiStackGroupManagerMixin",
     "RemiDefaultStackGroupsMixin",
     "RemiStackGroupIconMixin",
-    "RemiGroupStackIconMixin"
+    "RemiGroupStackIconMixin",
+    "RemiNestedGroupsMixin",
+    "RemiNestedStackManagerMixin",
+    "RemiNestedLayoutMixin"
   ],
   "server": [],
   "injectors": {

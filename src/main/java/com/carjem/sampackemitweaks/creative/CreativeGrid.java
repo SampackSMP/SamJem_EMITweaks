@@ -17,7 +17,8 @@ import java.util.Set;
  * The open item tab's grid, with its collapsible groups, laid out the way REMI lays out EMI's
  * index: a group with at least two of its items in the list is shown once, as its first item,
  * where that item would have been; its other items follow it only while it is expanded. An item
- * whose group has just one item in the list is shown on its own.
+ * whose group has just one item in the list is shown on its own. A group can sit inside another
+ * ({@link GroupKey#parent}); it is then laid out inside it the same way (see {@link GroupTree}).
  *
  * <p>The grid is a list position per slot. A slot's position is its index in the grid plus the
  * first item of the top row, which {@link #setFirstRow} records whenever the menu scrolls, so
@@ -27,21 +28,15 @@ public final class CreativeGrid {
     /**
      * One collapsible group, as {@link CreativeContents} found it.
      *
-     * @param id   what the expanded state is kept by; the same group must keep the same id
-     *             across reloads
-     * @param icon what its collapsed slot shows; null for the configured default
+     * @param id     what the expanded state is kept by; the same group must keep the same id
+     *               across reloads
+     * @param icon   what its collapsed slot shows; null for the configured default
+     * @param parent the group it sits inside; null for none
      */
-    public record GroupKey(Object id, Component name, @Nullable GroupIcon icon) {
+    public record GroupKey(Object id, Component name, @Nullable GroupIcon icon, @Nullable GroupKey parent) {
     }
 
-    private static final class Run {
-        final GroupKey key;
-        final List<ItemStack> items = new ArrayList<>();
-        boolean placed;
-
-        Run(GroupKey key) {
-            this.key = key;
-        }
+    private record Run(GroupKey key, List<ItemStack> items, List<Object> children) {
     }
 
     // Kept for the session, like REMI's: a group stays open across tabs, searches and screens.
@@ -51,8 +46,10 @@ public final class CreativeGrid {
     // Each entry is an ItemStack or a Run.
     private static List<Object> entries = List.of();
     private static List<ItemStack> shown = List.of();
-    private static Run[] runAt = new Run[0];
-    private static boolean[] headerAt = new boolean[0];
+    // The group whose header is at a position; null for an item.
+    private static Run[] headerAt = new Run[0];
+    // True for a position inside an expanded group, an expanded header included.
+    private static boolean[] insideAt = new boolean[0];
     private static int firstPosition;
 
     private CreativeGrid() {
@@ -64,29 +61,28 @@ public final class CreativeGrid {
      * @param groups each item's group, by position; null for none
      */
     public static List<ItemStack> layout(List<ItemStack> items, GroupKey[] groups) {
-        Map<GroupKey, Run> runs = new IdentityHashMap<>();
+        Map<ItemStack, GroupKey> groupOf = new IdentityHashMap<>(items.size());
         for (int i = 0; i < items.size(); i++) {
-            GroupKey key = groups[i];
-            if (key != null) {
-                runs.computeIfAbsent(key, Run::new).items.add(items.get(i));
-            }
+            if (groups[i] != null) groupOf.put(items.get(i), groups[i]);
         }
-
-        List<Object> laidOut = new ArrayList<>(items.size());
-        for (int i = 0; i < items.size(); i++) {
-            Run run = groups[i] != null ? runs.get(groups[i]) : null;
-            if (run == null || run.items.size() < 2) {
-                laidOut.add(items.get(i));
-            } else if (!run.placed) {
-                run.placed = true;
-                laidOut.add(run);
-            }
-        }
-
-        entries = laidOut;
+        entries = runs(GroupTree.build(items, groupOf::get, GroupKey::parent));
         active = true;
         render();
         return shown;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> runs(List<Object> nodes) {
+        List<Object> result = new ArrayList<>(nodes.size());
+        for (Object node : nodes) {
+            if (node instanceof GroupTree.Node<?, ?> group) {
+                GroupTree.Node<ItemStack, GroupKey> typed = (GroupTree.Node<ItemStack, GroupKey>) group;
+                result.add(new Run(typed.group(), typed.items(), runs(typed.children())));
+            } else {
+                result.add(node);
+            }
+        }
+        return result;
     }
 
     /** The open tab shows no items, or is not grouped. */
@@ -94,38 +90,37 @@ public final class CreativeGrid {
         active = false;
         entries = List.of();
         shown = List.of();
-        runAt = new Run[0];
-        headerAt = new boolean[0];
+        headerAt = new Run[0];
+        insideAt = new boolean[0];
     }
 
     private static void render() {
-        int size = 0;
-        for (Object entry : entries) {
-            size += entry instanceof Run run && EXPANDED.contains(run.key.id()) ? 1 + run.items.size() : 1;
-        }
+        List<ItemStack> items = new ArrayList<>();
+        List<Run> headers = new ArrayList<>();
+        List<Boolean> inside = new ArrayList<>();
+        render(entries, false, items, headers, inside);
 
-        List<ItemStack> items = new ArrayList<>(size);
-        Run[] runs = new Run[size];
-        boolean[] headers = new boolean[size];
+        boolean[] insideArray = new boolean[inside.size()];
+        for (int i = 0; i < insideArray.length; i++) insideArray[i] = inside.get(i);
+        shown = items;
+        headerAt = headers.toArray(new Run[0]);
+        insideAt = insideArray;
+    }
+
+    private static void render(List<Object> entries, boolean inExpanded, List<ItemStack> items, List<Run> headers, List<Boolean> inside) {
         for (Object entry : entries) {
             if (entry instanceof Run run) {
-                runs[items.size()] = run;
-                headers[items.size()] = true;
-                items.add(run.items.getFirst());
-                if (EXPANDED.contains(run.key.id())) {
-                    for (ItemStack item : run.items) {
-                        runs[items.size()] = run;
-                        items.add(item);
-                    }
-                }
+                boolean expanded = EXPANDED.contains(run.key().id());
+                items.add(run.items().getFirst());
+                headers.add(run);
+                inside.add(inExpanded || expanded);
+                if (expanded) render(run.children(), true, items, headers, inside);
             } else {
                 items.add((ItemStack) entry);
+                headers.add(null);
+                inside.add(inExpanded);
             }
         }
-
-        shown = items;
-        runAt = runs;
-        headerAt = headers;
     }
 
     /** Called with the top row whenever the menu scrolls. */
@@ -141,16 +136,19 @@ public final class CreativeGrid {
     }
 
     public static boolean isHeader(int position) {
-        return position >= 0 && headerAt[position];
+        return position >= 0 && headerAt[position] != null;
     }
 
-    /** True for an item shown inside an expanded group (its header included). */
+    /**
+     * True for a slot shown inside an expanded group: its items, its expanded header, and the
+     * headers of the groups inside it, open or not.
+     */
     public static boolean isInExpandedGroup(int position) {
-        return position >= 0 && runAt[position] != null && EXPANDED.contains(runAt[position].key.id());
+        return position >= 0 && insideAt[position];
     }
 
     public static boolean isExpanded(int position) {
-        return isHeader(position) && EXPANDED.contains(runAt[position].key.id());
+        return isHeader(position) && EXPANDED.contains(headerAt[position].key().id());
     }
 
     /**
@@ -160,26 +158,26 @@ public final class CreativeGrid {
      */
     public static boolean renderIcon(net.minecraft.client.gui.GuiGraphics graphics, int position, int x, int y) {
         if (!isHeader(position)) return false;
-        Run run = runAt[position];
-        GroupIcon icon = run.key.icon();
+        Run run = headerAt[position];
+        GroupIcon icon = run.key().icon();
         if (icon == null) icon = com.carjem.sampackemitweaks.client.ClientConfig.get(
                 com.carjem.sampackemitweaks.client.ClientConfig.CREATIVE_GROUP_ICON).icon();
         if (icon.kind == GroupIcon.Kind.FIRST) return false;
-        icon.render(graphics, x, y, run.items);
+        icon.render(graphics, x, y, run.items());
         return true;
     }
 
     /** The header's tooltip: the group's name and size. */
     public static List<Component> tooltip(int position) {
-        Run run = runAt[position];
-        return List.of(run.key.name(),
-                Component.translatable("sampack_emitweaks.creative.group_size", run.items.size())
+        Run run = headerAt[position];
+        return List.of(run.key().name(),
+                Component.translatable("sampack_emitweaks.creative.group_size", run.items().size())
                         .withStyle(net.minecraft.ChatFormatting.GRAY));
     }
 
     /** Opens or closes the group whose header is at the position; returns what the grid now shows. */
     public static List<ItemStack> toggle(int position) {
-        Object id = runAt[position].key.id();
+        Object id = headerAt[position].key().id();
         if (!EXPANDED.remove(id)) {
             EXPANDED.add(id);
         }

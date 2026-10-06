@@ -122,6 +122,36 @@ this mod. REMI groups already take a display name from their `name` key.
 {"type": "remi:tag", "id": "chipped:acacia_log", "tag": "chipped:acacia_log", "icon": "minecraft:acacia_log"}
 ```
 
+### Nested groups
+
+A stack group can hold other stack groups, in the creative inventory and in REMI's EMI panels
+alike. The `subgroups` key of a stack group json (any type) lists the ids of the groups inside it:
+
+```json
+{"id": "sampack:wooden_doors", "type": "remi:group", "priority": 1,
+ "contents": ["item:minecraft:pale_oak_door", "item:quark:azalea_door"],
+ "subgroups": ["chipped:oak_door", "chipped:spruce_door"]}
+```
+
+Expanding the doors shows the oak and spruce door sets as groups of their own, each led by its
+own door as it is without nesting, among the doors that have no set; each expands in turn. The outer group's icon, item count and search by name cover its subgroups'
+items too. In REMI's panels an expanded subgroup is drawn as its own region inside the outer one.
+
+- Each item still belongs to the one group REMI matches it to: the highest `priority`, then the
+  lowest id. So an item should be listed by one of the two groups only; InvIndexLedger leaves a
+  chipped set's parent block out of the section, so the set keeps it as its first item, and
+  writes `"priority": 1` on the section so no other group that names one of its items takes it.
+- A group with fewer than two items in the list, its subgroups' included, is dissolved into the
+  group around it, as REMI already shows a one-item group as a plain item.
+- A disabled outer group leaves its subgroups standing on their own. A group named by two outer
+  groups stays in the first, and a cycle is cut where it closes; both are logged.
+- The key goes on the outer group because REMI's tag-page toggle rewrites a `remi:tag` file from
+  scratch and would drop it from the inner one. REMI ignores the key, and while no group has
+  subgroups REMI lays its panels out with its own code.
+
+InvIndexLedger's `build` writes `subgroups` for every collapsible grouping section that has
+chipped sets spliced in behind its items.
+
 ## EMI search bar (`search`, `mixin/emi`)
 
 Each of these can be turned off in [EMI's config screen](#config-screen); all are on by default.

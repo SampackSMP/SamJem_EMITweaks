@@ -20,8 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 
 /**
- * Draws the creative grid's groups: an open group's items on a highlighted slot, its header on
- * another, the group's own icon on its header if it has one, and a plus or minus over every
+ * Draws the creative grid's groups: an open group's items (and closed groups inside it) on a
+ * highlighted slot, its header on another, the group's own icon on its header if it has one, and a plus or minus over every
  * header. A header's tooltip is the group's name. Only the creative item grid has list positions
  * ({@link CreativeGrid#position}), so other screens are untouched.
  */
@@ -56,7 +56,8 @@ public abstract class AbstractContainerScreenMixin {
     private void sampack_emitweaks$renderGroupSlot(GuiGraphics graphics, Slot slot, CallbackInfo ci) {
         int position = CreativeGrid.position(slot);
         if (CreativeGrid.isInExpandedGroup(position)) {
-            sampack_emitweaks$blit(graphics, CreativeGrid.isHeader(position) ? sampack_emitweaks$ICON_SLOT : sampack_emitweaks$ITEM_SLOT,
+            // a closed group inside an open one is one of its items
+            sampack_emitweaks$blit(graphics, CreativeGrid.isExpanded(position) ? sampack_emitweaks$ICON_SLOT : sampack_emitweaks$ITEM_SLOT,
                     slot.x - 1, slot.y - 1, 18);
         }
     }
