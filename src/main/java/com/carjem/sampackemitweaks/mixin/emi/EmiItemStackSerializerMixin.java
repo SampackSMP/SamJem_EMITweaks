@@ -2,12 +2,19 @@ package com.carjem.sampackemitweaks.mixin.emi;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+import com.carjem.sampackemitweaks.SampackEmiTweaks;
+
 import dev.emi.emi.stack.serializer.ItemEmiStackSerializer;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * {@code ItemEmiStackSerializer.create(...)} resolves a saved item id via
@@ -30,17 +37,27 @@ import dev.emi.emi.stack.serializer.ItemEmiStackSerializer;
  * {@code fillInStackTrace()} is a no-op instead, when the value truly is absent - the caught type,
  * the log message, and the {@code EmiStack.EMPTY} fallback are all completely unchanged; only the
  * cost of the (already-being-thrown-away) stack trace is removed.
+ * <p>
+ * EMI's own message never says which id failed, so each missing id is also logged once per
+ * session, to find the data file that still references it.
  */
 @Mixin(value = ItemEmiStackSerializer.class, remap = false)
 public class EmiItemStackSerializerMixin {
+
+    @Unique
+    private static final Set<ResourceLocation> sampack_emitweaks$loggedMissing = ConcurrentHashMap.newKeySet();
 
     @Redirect(
         method = "create",
         at = @At(value = "INVOKE", target = "Ljava/util/Optional;orElseThrow()Ljava/lang/Object;")
     )
-    private Object sampack_emitweaks$cheapOrElseThrow(Optional<?> optional) {
+    private Object sampack_emitweaks$cheapOrElseThrow(Optional<?> optional, ResourceLocation id, DataComponentPatch components, long amount) {
         if (optional.isPresent()) {
             return optional.get();
+        }
+
+        if (sampack_emitweaks$loggedMissing.add(id)) {
+            SampackEmiTweaks.LOGGER.warn("EMI stack references unregistered item {}", id);
         }
 
         throw new NoSuchElementException("No value present") {
