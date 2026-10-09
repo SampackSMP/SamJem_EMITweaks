@@ -358,8 +358,9 @@ public final class CreativeContents {
         // One key per stack group, so the grid can tell groups apart by identity.
         private static final Map<com.evandev.remi.feature.stackgroup.data.StackGroup, GroupKey> KEYS = new IdentityHashMap<>();
 
+        // REMI publishes new maps each time it rebuilds its groups
         static Object generation() {
-            return com.evandev.remi.feature.stackgroup.StackGroupManager.groupToGroupStacks;
+            return com.evandev.remi.feature.stackgroup.StackGroupManager.getStackToGroupedStacks();
         }
 
         /** REMI's search results, before it groups them. */
@@ -412,7 +413,7 @@ public final class CreativeContents {
                     com.carjem.sampackemitweaks.compat.RemiNestedGroups.parent(group, g -> g.isEnabled);
             GroupKey parent = outer != null ? key(outer) : null;
 
-            var groupStack = com.evandev.remi.feature.stackgroup.StackGroupManager.groupToGroupStacks.get(group);
+            var groupStack = com.evandev.remi.feature.stackgroup.StackGroupManager.getGroupStack(group);
             Component name = groupStack != null ? groupStack.getName()
                     : group.name != null ? group.name
                     : Component.literal(group.getId().toString());

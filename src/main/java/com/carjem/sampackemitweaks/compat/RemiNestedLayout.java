@@ -59,7 +59,7 @@ public final class RemiNestedLayout {
      */
     @Nullable
     public static GroupedEmiStack<EmiStack> grouped(EmiStack stack) {
-        List<GroupedEmiStack<EmiStack>> variants = StackGroupManager.stackToGroupedStacks.get(stack);
+        List<GroupedEmiStack<EmiStack>> variants = StackGroupManager.getStackToGroupedStacks().get(stack);
         if (variants == null) {
             variants = StackGroupManager.getItemToGroupedStacks().get(stack.getId());
             if (variants == null) return null;
@@ -118,7 +118,7 @@ public final class RemiNestedLayout {
         List<GroupedEmiStack<EmiStack>> members = members(node);
         if (!node.hasSubgroups()) {
             // REMI reuses its cached stack for a group whose matches are all here
-            EmiGroupStack cached = StackGroupManager.groupToGroupStacks.get(node.group());
+            EmiGroupStack cached = StackGroupManager.getGroupStack(node.group());
             if (cached != null && cached.itemsNew.size() == members.size() && ownOnly(node)) return cached;
             return new EmiGroupStack(node.group(), new ArrayList<>(members));
         }
@@ -242,7 +242,7 @@ public final class RemiNestedLayout {
 
         for (StackGroup group : StackGroupManager.stackGroups) {
             if (!group.isEnabled) continue;
-            EmiGroupStack groupStack = StackGroupManager.groupToGroupStacks.get(group);
+            EmiGroupStack groupStack = StackGroupManager.getGroupStack(group);
             if (groupStack == null) continue;
             if (!group.getId().toString().toLowerCase(Locale.ROOT).contains(lower)
                     && !groupStack.getName().getString().toLowerCase(Locale.ROOT).contains(lower)) continue;
@@ -252,7 +252,7 @@ public final class RemiNestedLayout {
 
     private static void append(StackGroup group, @Nullable Set<ResourceLocation> allowedIds, Set<EmiStack> existing,
                                List<EmiStack> results, int depth) {
-        EmiGroupStack groupStack = StackGroupManager.groupToGroupStacks.get(group);
+        EmiGroupStack groupStack = StackGroupManager.getGroupStack(group);
         if (groupStack != null) {
             for (GroupedEmiStack<EmiStack> item : groupStack.getItems()) {
                 if ((allowedIds == null || allowedIds.contains(item.realStack.getId())) && existing.add(item.realStack)) {
