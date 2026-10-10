@@ -108,7 +108,7 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
      */
     @Inject(method = "resize", at = @At("HEAD"), cancellable = true)
     private void sampack_emitweaks$relayout(Minecraft minecraft, int width, int height, CallbackInfo ci) {
-        if (sampack_emitweaks$relayoutInProgress || ModList.get().isLoaded("axiom")) { ci.cancel(); return; }
+        if (sampack_emitweaks$relayoutInProgress || ModList.get().isLoaded("axiom")) return;
         if (selectedTab != null && selectedTab.getType() == CreativeModeTab.Type.INVENTORY) return;
         CreativeLayout layout = CreativeLayout.get();
         if (minecraft.player == null || layout.sameSize(CreativeLayout.compute())) return;
