@@ -17,6 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.gui.CreativeTabsScreenPage;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -52,6 +53,9 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
     @Shadow @Final private static ResourceLocation[] UNSELECTED_BOTTOM_TABS;
     @Shadow @Final private static ResourceLocation[] SELECTED_BOTTOM_TABS;
 
+    @Unique
+    private static boolean sampack_emitweaks$relayoutInProgress = false;
+
     protected CreativeModeInventoryScreenLayoutMixin(CreativeModeInventoryScreen.ItemPickerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
     }
@@ -64,7 +68,8 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void sampack_emitweaks$resize(CallbackInfo ci) {
-        CreativeLayout layout = CreativeLayout.get();
+        CreativeLayout layout = selectedTab != null && selectedTab.getType() == CreativeModeTab.Type.INVENTORY
+                ? CreativeLayout.VANILLA : CreativeLayout.get();
         imageWidth = layout.width();
         imageHeight = layout.height();
     }
@@ -103,17 +108,24 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
      */
     @Inject(method = "resize", at = @At("HEAD"), cancellable = true)
     private void sampack_emitweaks$relayout(Minecraft minecraft, int width, int height, CallbackInfo ci) {
+        if (sampack_emitweaks$relayoutInProgress || ModList.get().isLoaded("axiom")) { ci.cancel(); return; }
+        if (selectedTab != null && selectedTab.getType() == CreativeModeTab.Type.INVENTORY) return;
         CreativeLayout layout = CreativeLayout.get();
         if (minecraft.player == null || layout.sameSize(CreativeLayout.compute())) return;
 
         int firstItem = ((ItemPickerMenuAccessor) menu).sampack_emitweaks$getRowIndexForScroll(scrollOffs) * layout.columns;
-        CreativeModeInventoryScreen screen = new CreativeModeInventoryScreen(
-                minecraft.player, minecraft.player.connection.enabledFeatures(), displayOperatorCreativeTab);
-        minecraft.setScreen(screen);
-        if (minecraft.screen == screen) {
-            CreativeModeInventoryScreenLayoutMixin mixin = (CreativeModeInventoryScreenLayoutMixin) (Object) screen;
-            mixin.scrollOffs = ((ItemPickerMenuAccessor) mixin.menu).sampack_emitweaks$getScrollForRowIndex(firstItem / CreativeLayout.get().columns);
-            mixin.menu.scrollTo(mixin.scrollOffs);
+        sampack_emitweaks$relayoutInProgress = true;
+        try {
+            CreativeModeInventoryScreen screen = new CreativeModeInventoryScreen(
+                    minecraft.player, minecraft.player.connection.enabledFeatures(), displayOperatorCreativeTab);
+            minecraft.setScreen(screen);
+            if (minecraft.screen == screen) {
+                CreativeModeInventoryScreenLayoutMixin mixin = (CreativeModeInventoryScreenLayoutMixin) (Object) screen;
+                mixin.scrollOffs = ((ItemPickerMenuAccessor) mixin.menu).sampack_emitweaks$getScrollForRowIndex(firstItem / CreativeLayout.get().columns);
+                mixin.menu.scrollTo(mixin.scrollOffs);
+            }
+        } finally {
+            sampack_emitweaks$relayoutInProgress = false;
         }
         ci.cancel();
     }
@@ -137,8 +149,8 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
     // top-left positions so widgets other mods anchor to them (e.g. curios) stay aligned.
 
     /**
-     * Saved hotbars are 9 items per row; pad each to a full grid row so they don't wrap into
-     * each other.
+     * Saved hotbars are 9 items per row; pad each entry to a full grid row and center it so
+     * the 9 slots don't hug the left edge on wider layouts.
      */
     @Inject(method = "selectTab", at = @At("TAIL"))
     private void sampack_emitweaks$padSavedHotbars(CreativeModeTab tab, CallbackInfo ci) {
@@ -146,17 +158,45 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
         if (layout.isVanilla() || tab.getType() != CreativeModeTab.Type.HOTBAR) return;
 
         NonNullList<ItemStack> items = menu.items;
-        List<ItemStack> padded = new ArrayList<>(items.size() / 9 * layout.columns);
-        for (int i = 0; i < items.size(); i++) {
-            padded.add(items.get(i));
-            if (i % 9 == 8) {
-                for (int pad = 9; pad < layout.columns; pad++)
-                    padded.add(ItemStack.EMPTY);
-            }
+        int entries = items.size() / 9;
+        int leftPad = (layout.columns - 9) / 2;
+        int rightPad = layout.columns - 9 - leftPad;
+
+        List<ItemStack> padded = new ArrayList<>(entries * layout.columns);
+        for (int entry = 0; entry < entries; entry++) {
+            for (int p = 0; p < leftPad; p++) padded.add(ItemStack.EMPTY);
+            for (int i = 0; i < 9; i++) padded.add(items.get(entry * 9 + i));
+            for (int p = 0; p < rightPad; p++) padded.add(ItemStack.EMPTY);
         }
         items.clear();
         items.addAll(padded);
         menu.scrollTo(0.0F);
+    }
+
+    /**
+     * Recreates the screen when switching between the survival-inventory tab (vanilla height) and
+     * item tabs (expanded height), so the panel always fits its content.
+     */
+    @Inject(method = "selectTab", at = @At("TAIL"))
+    private void sampack_emitweaks$relayoutForInventory(CreativeModeTab tab, CallbackInfo ci) {
+        if (sampack_emitweaks$relayoutInProgress) return;
+        CreativeLayout layout = CreativeLayout.get();
+        if (layout.isVanilla()) return;
+
+        boolean wantsVanilla = tab.getType() == CreativeModeTab.Type.INVENTORY;
+        boolean hasVanilla = imageHeight == CreativeLayout.VANILLA.height();
+        if (wantsVanilla == hasVanilla) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        sampack_emitweaks$relayoutInProgress = true;
+        try {
+            mc.setScreen(new CreativeModeInventoryScreen(
+                    mc.player, mc.player.connection.enabledFeatures(), displayOperatorCreativeTab));
+        } finally {
+            sampack_emitweaks$relayoutInProgress = false;
+        }
     }
 
     @WrapOperation(method = "renderBg", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blit(Lnet/minecraft/resources/ResourceLocation;IIIIII)V", ordinal = 0))

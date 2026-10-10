@@ -258,9 +258,12 @@ public final class CreativeLayout {
         pose.translate(x, y, 0);
         pose.mulPose(new Matrix4f(0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1));
         // The mirror flips the quads' winding.
-        RenderSystem.disableCull();
-        blitTab(graphics, sprite, 0, 0, left);
-        RenderSystem.enableCull();
+        try {
+            RenderSystem.disableCull();
+            blitTab(graphics, sprite, 0, 0, left);
+        } finally {
+            RenderSystem.enableCull();
+        }
         pose.popPose();
     }
 
