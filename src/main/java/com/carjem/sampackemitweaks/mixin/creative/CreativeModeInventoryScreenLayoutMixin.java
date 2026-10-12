@@ -68,8 +68,7 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void sampack_emitweaks$resize(CallbackInfo ci) {
-        CreativeLayout layout = selectedTab != null && selectedTab.getType() == CreativeModeTab.Type.INVENTORY
-                ? CreativeLayout.VANILLA : CreativeLayout.get();
+        CreativeLayout layout = CreativeLayout.get();
         imageWidth = layout.width();
         imageHeight = layout.height();
     }
@@ -109,9 +108,8 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
     @Inject(method = "resize", at = @At("HEAD"), cancellable = true)
     private void sampack_emitweaks$relayout(Minecraft minecraft, int width, int height, CallbackInfo ci) {
         if (sampack_emitweaks$relayoutInProgress || ModList.get().isLoaded("axiom")) return;
-        if (selectedTab != null && selectedTab.getType() == CreativeModeTab.Type.INVENTORY) return;
         CreativeLayout layout = CreativeLayout.get();
-        if (minecraft.player == null || layout.sameSize(CreativeLayout.compute())) return;
+        if (minecraft.player == null || layout.sameSize(CreativeLayout.forTab(selectedTab))) return;
 
         int firstItem = ((ItemPickerMenuAccessor) menu).sampack_emitweaks$getRowIndexForScroll(scrollOffs) * layout.columns;
         sampack_emitweaks$relayoutInProgress = true;
@@ -174,18 +172,12 @@ public abstract class CreativeModeInventoryScreenLayoutMixin extends EffectRende
     }
 
     /**
-     * Recreates the screen when switching between the survival-inventory tab (vanilla height) and
-     * item tabs (expanded height), so the panel always fits its content.
+     * The survival inventory tab is built at vanilla size (see {@link CreativeLayout#forTab}), so
+     * switching to or from it reopens the screen with a menu of the right size.
      */
     @Inject(method = "selectTab", at = @At("TAIL"))
     private void sampack_emitweaks$relayoutForInventory(CreativeModeTab tab, CallbackInfo ci) {
-        if (sampack_emitweaks$relayoutInProgress) return;
-        CreativeLayout layout = CreativeLayout.get();
-        if (layout.isVanilla()) return;
-
-        boolean wantsVanilla = tab.getType() == CreativeModeTab.Type.INVENTORY;
-        boolean hasVanilla = imageHeight == CreativeLayout.VANILLA.height();
-        if (wantsVanilla == hasVanilla) return;
+        if (sampack_emitweaks$relayoutInProgress || CreativeLayout.get().sameSize(CreativeLayout.forTab(tab))) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;

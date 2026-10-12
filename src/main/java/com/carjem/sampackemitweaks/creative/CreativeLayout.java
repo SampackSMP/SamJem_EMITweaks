@@ -1,12 +1,14 @@
 package com.carjem.sampackemitweaks.creative;
 
 import com.carjem.sampackemitweaks.client.ClientConfig;
+import com.carjem.sampackemitweaks.mixin.creative.CreativeModeInventoryScreenAccessor;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTab;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ public final class CreativeLayout {
     public static final int VANILLA_COLUMNS = 9;
     public static final int VANILLA_ROWS = 5;
     public static final int MAX_ROWS = 20;
+    private static final int SAVED_HOTBARS = 9;
 
     private static final int SLOT_SIZE = 18;
     private static final int VANILLA_WIDTH = 195;
@@ -86,10 +89,25 @@ public final class CreativeLayout {
 
     /**
      * Re-reads the window size. Called once per creative screen, when its menu is built, because
-     * the slot count is fixed for the life of the menu.
+     * the slot count is fixed for the life of the menu. A screen opened on the survival inventory
+     * tab is built entirely at vanilla size; switching tab reopens it.
      */
     public static void refresh() {
-        active = compute();
+        active = forTab(CreativeModeInventoryScreenAccessor.sampack_emitweaks$getSelectedTab());
+    }
+
+    /** The layout a screen showing {@code tab} should be built with. */
+    public static CreativeLayout forTab(CreativeModeTab tab) {
+        if (tab == null) return compute();
+        return switch (tab.getType()) {
+            case INVENTORY -> VANILLA;
+            case HOTBAR -> of(Math.min(compute().rows, SAVED_HOTBARS));
+            default -> compute();
+        };
+    }
+
+    private static CreativeLayout of(int rows) {
+        return rows == VANILLA_ROWS ? VANILLA : new CreativeLayout(VANILLA_COLUMNS, rows);
     }
 
     /**
@@ -104,8 +122,7 @@ public final class CreativeLayout {
             int spareHeight = window.getGuiScaledHeight() - 2 * FIT_VERTICAL_MARGIN - VANILLA_HEIGHT;
             rows = Math.min(rows, VANILLA_ROWS + Math.max(0, spareHeight / SLOT_SIZE));
         }
-        rows = Math.clamp(rows, VANILLA_ROWS, MAX_ROWS);
-        return rows == VANILLA_ROWS ? VANILLA : new CreativeLayout(VANILLA_COLUMNS, rows);
+        return of(Math.clamp(rows, VANILLA_ROWS, MAX_ROWS));
     }
 
     public boolean sameSize(CreativeLayout other) {
