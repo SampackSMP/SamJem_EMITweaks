@@ -1,4 +1,4 @@
-# SamPack EMI Tweaks
+# SamJem: EMI Tweaks
 
 Load-time and EMI-reload fixes for the SamPack modpack on NeoForge 1.21.1. Each fix produces the
 same result the original mod would have produced. It only removes redundant work, or a crash, along
