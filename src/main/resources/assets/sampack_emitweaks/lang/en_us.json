@@ -49,7 +49,7 @@
     "sampack_emitweaks.configuration.creative_tabs": "Creative Tabs",
     "sampack_emitweaks.configuration.stack_groups": "Stack Groups",
     "sampack_emitweaks.configuration.sidebar_pages": "Sidebar Pages",
-    "sampack_emitweaks.configuration.title": "SamPack EMI Tweaks",
+    "sampack_emitweaks.configuration.title": "SamJem: EMI Tweaks",
     "sampack_emitweaks.configuration.remi_tweaks": "REMI Tweaks",
     "sampack_emitweaks.configuration.history_length": "History Size",
     "sampack_emitweaks.configuration.history_length.tooltip": "Searches the history list shows at once (scroll it for the rest), and how many are kept. Keeping 0 turns the history off.",
